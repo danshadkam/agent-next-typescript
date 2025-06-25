@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { TrendingUp, TrendingDown, BarChart3, DollarSign, AlertTriangle, Newspaper, Target, Activity, PieChart, Zap, Star, ThumbsUp, ThumbsDown, Gauge, Minus, Info } from "lucide-react";
 
 interface FinancialMetric {
@@ -31,32 +31,79 @@ export default function FinancialChat() {
 
   const [selectedAnalysisType, setSelectedAnalysisType] = useState<'stock' | 'portfolio' | 'market'>('stock');
 
-  const parseFinancialData = (content: string) => {
+  const parseFinancialData = useCallback((content: string) => {
     try {
-      // Try to extract JSON data from the message
-      const jsonMatches = content.match(/\{[\s\S]*?\}(?=\s|$)/g);
-      if (jsonMatches) {
-        // Parse the last (most complete) JSON object
-        const lastMatch = jsonMatches[jsonMatches.length - 1];
-        return JSON.parse(lastMatch);
+      // Look for JSON blocks - find the largest complete JSON object
+      const jsonRegex = /\{(?:[^{}]|{[^{}]*})*\}/g;
+      const matches = content.match(jsonRegex);
+      
+      if (matches) {
+        // Try each match, starting with the largest one
+        const sortedMatches = matches.sort((a, b) => b.length - a.length);
+        
+        for (const match of sortedMatches) {
+          try {
+            const parsed = JSON.parse(match);
+            // Check if this looks like financial data
+            if (parsed.stocks || parsed.indicators || parsed.primaryStock || parsed.sentimentLabel || parsed.beta !== undefined) {
+              return parsed;
+            }
+          } catch (e) {
+            // Try next match
+            continue;
+          }
+        }
+      }
+      
+      // Fallback: try to extract JSON from code blocks
+      const codeBlockRegex = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/g;
+      const codeMatches = content.match(codeBlockRegex);
+      if (codeMatches) {
+        for (const block of codeMatches) {
+          try {
+            const jsonStr = block.replace(/```(?:json)?\s*|\s*```/g, '');
+            return JSON.parse(jsonStr);
+          } catch (e) {
+            continue;
+          }
+        }
       }
     } catch (e) {
       // If parsing fails, return null
     }
     return null;
-  };
+  }, []);
 
-  const formatResponseContent = (content: string) => {
-    // Remove JSON blocks from the display content
-    const cleanContent = content.replace(/\{[\s\S]*?\}(?=\s|$)/g, '').trim();
+  const formatResponseContent = useCallback((content: string) => {
+    // Remove ALL JSON blocks and code blocks from the display content
+    let cleanContent = content
+      // Remove complete JSON objects (including nested ones)
+      .replace(/\{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*\}/g, '')
+      // Remove JSON arrays
+      .replace(/\[(?:[^\[\]]|\[(?:[^\[\]]|\[[^\[\]]*\])*\])*\]/g, '')
+      // Remove JSON code blocks
+      .replace(/```(?:json|javascript|js)?\s*[\{\[][\s\S]*?[\}\]]\s*```/g, '')
+      // Remove standalone JSON lines
+      .replace(/^\s*[\{\[][\s\S]*[\}\]]\s*$/gm, '')
+      // Remove any remaining curly braces or brackets on their own lines
+      .replace(/^\s*[\{\}\[\]]\s*$/gm, '')
+      // Remove excessive whitespace
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
+      .trim();
     
     // Format the content with better structure
     return cleanContent
       .split('\n')
       .map(line => line.trim())
-      .filter(line => line.length > 0)
+      .filter(line => {
+        // Filter out empty lines and JSON remnants
+        if (line.length === 0) return false;
+        if (line.match(/^[\{\[\}\],\s]*$/)) return false;
+        if (line.match(/^\s*["\']?[a-zA-Z_]+["\']?\s*:\s*/)) return false; // JSON properties
+        return true;
+      })
       .join('\n\n');
-  };
+  }, []);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -76,7 +123,7 @@ export default function FinancialChat() {
     return <BarChart3 className="w-4 h-4 text-gray-500" />;
   };
 
-    const QuickActions = () => (
+    const QuickActions = memo(() => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       <button
         onClick={() => append({ content: "Get current market overview with comprehensive analysis", role: "user" })}
@@ -130,7 +177,7 @@ export default function FinancialChat() {
         </div>
       </button>
     </div>
-  );
+  ));
 
   const ProgressBar = ({ value, max, color = "blue" }: { value: number; max: number; color?: string }) => {
     const percentage = Math.min((value / max) * 100, 100);
@@ -717,7 +764,107 @@ export default function FinancialChat() {
     </div>
   );
 
-  const FinancialDataDisplay = ({ data }: { data: any }) => {
+  const EnhancedTextDisplay = memo(({ content }: { content: string }) => {
+    const formatFinancialText = (text: string) => {
+      // Split into paragraphs
+      const paragraphs = text.split('\n\n').filter(p => p.trim());
+      
+      return paragraphs.map((paragraph, idx) => {
+        const trimmed = paragraph.trim();
+        
+        // Check for headers (## or **bold text**)
+        if (trimmed.startsWith('##')) {
+          const headerText = trimmed.replace(/^##\s*/, '');
+          return (
+            <div key={idx} className="mb-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-2 border-b-2 border-blue-500 pb-1">
+                📊 {headerText}
+              </h3>
+            </div>
+          );
+        }
+        
+        // Check for bold section headers
+        if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+          const headerText = trimmed.replace(/\*\*/g, '');
+          return (
+            <div key={idx} className="mb-3">
+              <h4 className="text-lg font-semibold text-blue-800 mb-2">
+                🎯 {headerText}
+              </h4>
+            </div>
+          );
+        }
+        
+        // Check for bullet points
+        if (trimmed.includes('- ')) {
+          const lines = trimmed.split('\n').filter(line => line.trim());
+          return (
+            <div key={idx} className="mb-4">
+              <ul className="space-y-2">
+                {lines.map((line, lineIdx) => {
+                  if (line.trim().startsWith('- ')) {
+                    const bulletText = line.replace(/^-\s*/, '');
+                    
+                    // Check for stock symbols or financial terms
+                    const formattedText = bulletText
+                      .replace(/\b([A-Z]{1,5})\b(?=\s|$)/g, '<span class="font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">$1</span>')
+                      .replace(/\$[\d,]+\.?\d*/g, '<span class="font-bold text-green-600">$&</span>')
+                      .replace(/[\+\-]?\d+\.?\d*%/g, '<span class="font-bold text-purple-600">$&</span>')
+                      .replace(/\b(BUY|STRONG BUY)\b/gi, '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">🚀 $1</span>')
+                      .replace(/\b(HOLD|NEUTRAL)\b/gi, '<span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">⏸️ $1</span>')
+                      .replace(/\b(SELL|STRONG SELL)\b/gi, '<span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">📉 $1</span>')
+                      .replace(/\b(bullish|positive|strong|outperform)\b/gi, '<span class="text-green-600 font-semibold">📈 $1</span>')
+                      .replace(/\b(bearish|negative|weak|underperform)\b/gi, '<span class="text-red-600 font-semibold">📉 $1</span>');
+                    
+                    return (
+                      <li key={lineIdx} className="flex items-start gap-2">
+                        <span className="text-blue-500 font-bold mt-1">•</span>
+                        <span 
+                          className="text-gray-700 leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: formattedText }}
+                        />
+                      </li>
+                    );
+                  }
+                  return null;
+                })}
+              </ul>
+            </div>
+          );
+        }
+        
+        // Regular paragraph with enhanced formatting
+        const enhancedText = trimmed
+          .replace(/\b([A-Z]{1,5})\b(?=\s|$)/g, '<span class="font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">$1</span>')
+          .replace(/\$[\d,]+\.?\d*/g, '<span class="font-bold text-green-600">$&</span>')
+          .replace(/[\+\-]?\d+\.?\d*%/g, '<span class="font-bold text-purple-600">$&</span>')
+          .replace(/\b(BUY|STRONG BUY)\b/gi, '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">🚀 $1</span>')
+          .replace(/\b(HOLD|NEUTRAL)\b/gi, '<span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">⏸️ $1</span>')
+          .replace(/\b(SELL|STRONG SELL)\b/gi, '<span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">📉 $1</span>')
+          .replace(/\b(bullish|positive|strong|outperform)\b/gi, '<span class="text-green-600 font-semibold">📈 $1</span>')
+          .replace(/\b(bearish|negative|weak|underperform)\b/gi, '<span class="text-red-600 font-semibold">📉 $1</span>')
+          .replace(/\b(RSI|MACD|EMA|SMA|P\/E|Beta|VaR)\b/gi, '<span class="bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">$1</span>');
+        
+        return (
+          <div key={idx} className="mb-3">
+            <p 
+              className="text-gray-800 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: enhancedText }}
+            />
+          </div>
+        );
+      });
+    };
+    
+    return (
+      <div className="space-y-3">
+        {formatFinancialText(content)}
+      </div>
+    );
+  });
+
+  const FinancialDataDisplay = memo(({ data }: { data: any }) => {
     if (!data) return null;
 
     // Market Data Display with Modern UI
@@ -813,7 +960,7 @@ export default function FinancialChat() {
     }
 
     return null;
-  };
+  });
 
   return (
     <div className="flex flex-col h-[90vh] max-w-7xl mx-auto bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -848,7 +995,7 @@ export default function FinancialChat() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4">
+      <div className="flex-1 p-4 overflow-y-auto space-y-4 scroll-smooth" style={{ willChange: 'scroll-position' }}>
         {messages.length === 0 && (
           <div className="text-center py-12">
             <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -864,37 +1011,62 @@ export default function FinancialChat() {
         )}
         
         {messages.map((message, index) => {
+          // Parse financial data (no hooks needed here)
           const financialData = parseFinancialData(message.content);
+          
+          // Debug logging
+          if (message.role === "assistant") {
+            console.log("Message content:", message.content.substring(0, 500));
+            console.log("Parsed financial data:", financialData);
+          }
+          
+          // Format content (no hooks needed here)
+          const formattedContent = message.role === "assistant" 
+            ? formatResponseContent(message.content) 
+            : message.content;
           
           return (
             <div
               key={index}
-              className={`rounded-lg p-4 max-w-4xl ${
+              className={`rounded-xl p-6 max-w-5xl ${
                 message.role === "user"
-                  ? "bg-blue-500 text-white ml-auto"
-                  : "bg-white border shadow-sm mr-auto"
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white ml-auto shadow-lg"
+                  : "bg-gradient-to-br from-white to-gray-50 border-2 border-gray-100 shadow-lg mr-auto hover:shadow-xl transition-shadow"
               }`}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
                   message.role === "user" 
                     ? "bg-blue-600 text-blue-100" 
-                    : "bg-gray-100 text-gray-600"
+                    : "bg-gradient-to-br from-green-400 to-blue-500 text-white"
                 }`}>
-                  {message.role === "user" ? "U" : "AI"}
+                  {message.role === "user" ? "👤" : "🤖"}
                 </div>
-                <span className="text-sm font-medium capitalize">
-                  {message.role === "user" ? "You" : "Financial Analyst"}
-                </span>
+                <div>
+                  <span className="text-lg font-bold capitalize">
+                    {message.role === "user" ? "You" : "AI Financial Analyst"}
+                  </span>
+                  {message.role === "assistant" && (
+                    <div className="text-sm text-gray-500">
+                      Multi-Agent Analysis • Real-time Data
+                    </div>
+                  )}
+                </div>
+                {message.role === "assistant" && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
+                      ✓ LIVE
+                    </span>
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">
+                      🎯 ANALYSIS
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div className="prose prose-sm max-w-none">
                 {message.role === "assistant" ? 
-                  <div className="space-y-2">
-                    {formatResponseContent(message.content).split('\n\n').map((paragraph, idx) => (
-                      <p key={idx} className="text-gray-800 leading-relaxed">{paragraph}</p>
-                    ))}
-                  </div>
+                  <EnhancedTextDisplay content={formattedContent} />
                   : message.content
                 }
               </div>
