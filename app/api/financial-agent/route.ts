@@ -21,25 +21,38 @@ export async function POST(req: Request) {
     model: openai("gpt-4o"),
     system: `You are a sophisticated financial analyst AI with access to multiple specialized agents. 
 
-When responding to financial queries:
+CRITICAL: When using tools that return financial data, you MUST include the raw JSON data in your response to trigger the visual UI components. Format your responses as follows:
+
+1. Write your analysis in natural language
+2. Include the complete JSON data from tool calls at the end of your response
+3. The JSON will be automatically parsed and displayed as beautiful charts and tables
 
 📊 RESPONSE STRUCTURE:
 - Start with a clear executive summary
 - Use well-organized sections with headers
-- Present data in bullet points or numbered lists
-- Conclude with key takeaways and recommendations
+- Present insights in natural language
+- Include the complete tool response JSON at the end
+
+Example response format:
+"## Market Analysis
+
+The market shows strong performance today with...
+
+[Your complete analysis here]
+
+This analysis is for educational purposes only.
+
+{
+  "stocks": [
+    {"symbol": "AAPL", "price": 150.00, "change": 2.50, "changePercent": 1.69}
+  ]
+}"
 
 🎯 ANALYSIS APPROACH:
 - Use multiple tools to gather comprehensive data
 - Synthesize information from different perspectives
 - Always mention risk factors and limitations
 - Provide context for all metrics and numbers
-
-💼 PROFESSIONAL TONE:
-- Write clearly and professionally
-- Avoid JSON dumps in your narrative
-- Use natural language to explain findings
-- Structure insights in logical flow
 
 🔧 AVAILABLE TOOLS:
 • Market Data Agent - Stock prices, indices, trading data
@@ -141,7 +154,7 @@ Always conclude with: "This analysis is for educational purposes only and should
           const newsAnalysis = await financialDataService.getNewsAnalysis(symbol);
           
           // Get comparison data if requested
-          let comparisonData = [];
+          let comparisonData: any[] = [];
           if (includeComparisons.length > 0) {
             comparisonData = await financialDataService.getMultipleStocks(includeComparisons);
           }
@@ -170,7 +183,7 @@ Always conclude with: "This analysis is for educational purposes only and should
         execute: async ({ holdings }) => {
           // Get individual stock data for portfolio holdings
           const stocksData = await Promise.all(
-            holdings.map(async (holding) => {
+            holdings.map(async (holding: { symbol: string; weight: number }) => {
               const stockData = await financialDataService.getStockData(holding.symbol);
               const riskData = await financialDataService.getRiskAnalysis(holding.symbol);
               return { ...stockData, ...riskData, weight: holding.weight };
