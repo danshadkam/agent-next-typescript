@@ -2,5 +2,46 @@
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
   "devCommand": "npm run dev",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "functions": {
+    "app/api/whatsapp/route.ts": {
+      "maxDuration": 30,
+      "memory": 512,
+      "environment": {
+        "VERCEL_BYPASS_AUTH": "1"
+      }
+    },
+    "app/api/mcp/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/sse/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/whatsapp",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods", 
+          "value": "GET, POST, OPTIONS"
+        },
+        {
+          "key": "x-vercel-protection-bypass",
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/webhook",
+      "destination": "/api/whatsapp",
+      "permanent": false
+    }
+  ]
 } 
