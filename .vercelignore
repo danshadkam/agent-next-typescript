@@ -1,0 +1,21 @@
+# Ignore pnpm files to force npm usage
+pnpm-lock.yaml
+.pnpm-debug.log*
+
+# Development files
+.env.local
+.env.development.local
+.env.test.local
+
+# Dependencies
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db 
