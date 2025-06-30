@@ -14,6 +14,9 @@
     "test:mcp": "node scripts/test-mcp-tools.mjs http://localhost:3000",
     "test:whatsapp": "node scripts/test-whatsapp.mjs",
     "test:all": "npm run test:mcp && npm run test:whatsapp",
+    "verify:deployment": "node scripts/deploy-verification.mjs",
+    "verify:prod": "node scripts/deploy-verification.mjs https://your-app.vercel.app",
+    "setup:whatsapp": "node scripts/setup-whatsapp.mjs",
     "push": "./scripts/quick-push.sh",
     "save": "./scripts/quick-push.sh"
   },

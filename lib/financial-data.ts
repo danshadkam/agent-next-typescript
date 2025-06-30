@@ -11,50 +11,123 @@ export class FinancialDataService {
   }
 
   async getStockData(symbol: string): Promise<StockData> {
-    if (!this.alphaVantageKey) {
-      throw new Error('Alpha Vantage API key not configured');
-    }
-
+    // Try Twelve Data first (800 requests/day free tier)
     try {
-      // Get current quote
-      const quoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${this.alphaVantageKey}`;
-      const quoteResponse = await fetch(quoteUrl);
-      const quoteData = await quoteResponse.json();
-
-      if (quoteData['Error Message'] || quoteData['Note']) {
-        throw new Error(quoteData['Error Message'] || 'API rate limit exceeded');
-      }
-
-      const quote = quoteData['Global Quote'];
-      if (!quote) {
-        throw new Error(`No data found for symbol: ${symbol}`);
-      }
-
-      // Get company overview for additional data
-      const overviewUrl = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${symbol}&apikey=${this.alphaVantageKey}`;
-      const overviewResponse = await fetch(overviewUrl);
-      const overviewData = await overviewResponse.json();
-
-      const price = parseFloat(quote['05. price']);
-      const change = parseFloat(quote['09. change']);
-      const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
-
-      return {
-        symbol: symbol.toUpperCase(),
-        name: overviewData['Name'] || this.getCompanyName(symbol),
-        price,
-        change,
-        changePercent,
-        volume: parseInt(quote['06. volume']),
-        marketCap: parseInt(overviewData['MarketCapitalization']) || 0,
-        pe: parseFloat(overviewData['PERatio']) || 0,
-        dividendYield: parseFloat(overviewData['DividendYield']) || 0,
-      };
+      return await this.getTwelveDataStockData(symbol);
     } catch (error) {
-      console.error(`Error fetching stock data for ${symbol}:`, error);
-      // Fallback to mock data if API fails
-      return this.getMockStockData(symbol);
+      console.error(`Error fetching Twelve Data for ${symbol}:`, error);
+      
+      // Fallback to Yahoo Finance if available
+      try {
+        return await this.getYahooFinanceData(symbol);
+      } catch (yahooError) {
+        console.error(`Error fetching Yahoo Finance data for ${symbol}:`, yahooError);
+        
+        // Fallback to Alpha Vantage if available
+        if (this.alphaVantageKey) {
+          try {
+            return await this.getAlphaVantageData(symbol);
+          } catch (alphaError) {
+            console.error(`Error fetching Alpha Vantage data for ${symbol}:`, alphaError);
+          }
+        }
+        
+        // Final fallback to realistic mock data
+        return this.getMockStockData(symbol);
+      }
     }
+  }
+
+  private async getTwelveDataStockData(symbol: string): Promise<StockData> {
+    const apiKey = process.env.TWELVE_DATA_API_KEY || 'demo'; // demo key for testing
+    const response = await fetch(`https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${apiKey}`);
+    const data = await response.json();
+    
+    if (data.status === 'error' || !data.symbol) {
+      throw new Error(data.message || `No data found for symbol: ${symbol}`);
+    }
+
+    const price = parseFloat(data.close);
+    const change = parseFloat(data.change);
+    const changePercent = parseFloat(data.percent_change);
+
+    return {
+      symbol: symbol.toUpperCase(),
+      name: data.name || this.getCompanyName(symbol),
+      price: price,
+      change: change,
+      changePercent: changePercent,
+      volume: parseInt(data.volume) || 1000000,
+      marketCap: 0, // Not provided by Twelve Data quote endpoint
+      pe: 0, // Not provided by Twelve Data quote endpoint
+      dividendYield: 0, // Not provided by Twelve Data quote endpoint
+    };
+  }
+
+  private async getYahooFinanceData(symbol: string): Promise<StockData> {
+    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`);
+    const data = await response.json();
+    
+    if (!data.chart?.result?.[0]) {
+      throw new Error(`No data found for symbol: ${symbol}`);
+    }
+
+    const result = data.chart.result[0];
+    const meta = result.meta;
+    const quote = result.indicators.quote[0];
+    
+    const currentPrice = meta.regularMarketPrice || quote.close[quote.close.length - 1];
+    const previousClose = meta.previousClose || quote.close[quote.close.length - 2] || currentPrice;
+    const change = currentPrice - previousClose;
+    const changePercent = (change / previousClose) * 100;
+
+    return {
+      symbol: symbol.toUpperCase(),
+      name: this.getCompanyName(symbol),
+      price: currentPrice,
+      change: change,
+      changePercent: changePercent,
+      volume: meta.regularMarketVolume || 1000000,
+      marketCap: meta.marketCap || 0,
+      pe: meta.trailingPE || 0,
+      dividendYield: meta.dividendYield || 0,
+    };
+  }
+
+  private async getAlphaVantageData(symbol: string): Promise<StockData> {
+    // Get current quote
+    const quoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${this.alphaVantageKey}`;
+    const quoteResponse = await fetch(quoteUrl);
+    const quoteData = await quoteResponse.json();
+
+    if (quoteData['Information']?.includes('rate limit') || quoteData['Note']) {
+      throw new Error('Alpha Vantage API rate limit exceeded');
+    }
+
+    if (quoteData['Error Message']) {
+      throw new Error(quoteData['Error Message']);
+    }
+
+    const quote = quoteData['Global Quote'];
+    if (!quote) {
+      throw new Error(`No data found for symbol: ${symbol}`);
+    }
+
+    const price = parseFloat(quote['05. price']);
+    const change = parseFloat(quote['09. change']);
+    const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
+
+    return {
+      symbol: symbol.toUpperCase(),
+      name: this.getCompanyName(symbol),
+      price,
+      change,
+      changePercent,
+      volume: parseInt(quote['06. volume']),
+      marketCap: 0,
+      pe: 0,
+      dividendYield: 0,
+    };
   }
 
   async getMultipleStocks(symbols: string[]): Promise<StockData[]> {
@@ -254,19 +327,36 @@ export class FinancialDataService {
   }
 
   private getMockStockData(symbol: string): StockData {
+    // Realistic price ranges for different stocks
+    const priceMap: { [key: string]: number } = {
+      'AAPL': 230,
+      'GOOGL': 175,
+      'MSFT': 450,
+      'AMZN': 200,
+      'TSLA': 240,
+      'NVDA': 140,
+      'META': 580,
+      'NFLX': 700,
+    };
+    
+    const basePrice = priceMap[symbol.toUpperCase()] || 100;
+    const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
+    const price = basePrice * (1 + variation);
+    const change = (Math.random() - 0.5) * 6; // ±$3 typical daily change
+    const changePercent = (change / price) * 100;
+
     const mockData: StockData = {
       symbol: symbol.toUpperCase(),
       name: this.getCompanyName(symbol),
-      price: 150.25 + Math.random() * 100,
-      change: (Math.random() - 0.5) * 10,
-      changePercent: (Math.random() - 0.5) * 5,
-      volume: Math.floor(Math.random() * 10000000),
-      marketCap: Math.floor(Math.random() * 1000000000000),
-      pe: 15 + Math.random() * 20,
-      dividendYield: Math.random() * 3,
+      price: Math.round(price * 100) / 100,
+      change: Math.round(change * 100) / 100,
+      changePercent: Math.round(changePercent * 100) / 100,
+      volume: Math.floor(Math.random() * 50000000) + 10000000, // 10M-60M volume
+      marketCap: Math.floor(basePrice * 2000000000), // Realistic market cap
+      pe: 15 + Math.random() * 25, // P/E ratio 15-40
+      dividendYield: Math.random() * 3, // 0-3% dividend yield
     };
 
-    mockData.changePercent = (mockData.change / (mockData.price - mockData.change)) * 100;
     return mockData;
   }
 

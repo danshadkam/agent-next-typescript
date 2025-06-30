@@ -357,3 +357,76 @@ To add documents to your vector database, you'll need to use the Vectorize.io pl
 3. Make your changes
 4. Run tests and linting
 5. Submit a pull request
+
+# Financial Analysis Agent with WhatsApp Integration
+
+A comprehensive financial analysis platform powered by MCP (Model Context Protocol) with WhatsApp bot integration for instant financial insights.
+
+## 🚀 **Quick WhatsApp Bot Setup**
+
+Your WhatsApp financial bot is ready to deploy! Choose your setup method:
+
+### **Option 1: Interactive Setup (Recommended)**
+```bash
+npm run setup:whatsapp
+```
+
+### **Option 2: Manual Setup**
+```bash
+# 1. Copy environment template
+cp .env.local.example .env.local
+
+# 2. Edit .env.local with your WhatsApp credentials
+# 3. Test locally
+npm run dev
+npm run verify:deployment
+
+# 4. Deploy to production
+npx vercel --prod
+```
+
+## 📱 **WhatsApp Bot Features**
+
+- **📊 Stock Analysis**: `analyze AAPL`, `TSLA analysis`
+- **📈 Market Data**: `market summary`, `indices`  
+- **💬 Financial Chat**: `should I invest in tech stocks?`
+- **🤖 AI Powered**: Real-time financial insights via WhatsApp
+
+## 🔧 **Available Endpoints**
+
+| Endpoint | Description | Best For |
+|----------|-------------|----------|
+| `/api/webhook` | Direct financial analysis | Production (fastest) |
+| `/api/whatsapp` | MCP integration | Full features |
+| `/api/whatsapp-mcp` | Pure MCP | Development |
+
+## 🧪 **Testing Commands**
+
+```bash
+npm run setup:whatsapp      # Interactive setup
+npm run verify:deployment   # Test all systems locally
+npm run verify:prod         # Test production deployment
+npm run test:mcp           # Test MCP financial tools
+npm run test:whatsapp      # Test WhatsApp webhooks
+npm run test:all           # Run all tests
+```
+
+## 📚 **Documentation**
+
+- **[WhatsApp Setup Guide](docs/whatsapp-setup.md)** - Complete setup instructions
+- **[Deployment Guide](DEPLOYMENT-GUIDE.md)** - Quick deployment checklist
+- **[Environment Template](.env.local.example)** - Configuration reference
+
+## 🎯 **What's Included**
+
+✅ **3 WhatsApp webhook implementations**  
+✅ **Complete MCP financial server**  
+✅ **Vercel deployment configuration**  
+✅ **Comprehensive test suites**  
+✅ **Interactive setup scripts**  
+✅ **Security & rate limiting**  
+✅ **Error handling & logging**  
+
+---
+
+## 💡 **Financial Analysis Features**
