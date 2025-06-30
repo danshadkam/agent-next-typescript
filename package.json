@@ -12,6 +12,8 @@
     "test:sse": "node scripts/test-streamable-http-client.mjs http://localhost:3000",
     "test:stdio": "npx -y mcp-remote http://localhost:3000/api/mcp",
     "test:mcp": "node scripts/test-mcp-tools.mjs http://localhost:3000",
+    "test:whatsapp": "node scripts/test-whatsapp.mjs",
+    "test:all": "npm run test:mcp && npm run test:whatsapp",
     "push": "./scripts/quick-push.sh",
     "save": "./scripts/quick-push.sh"
   },
