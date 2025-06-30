@@ -11,7 +11,9 @@
     "test:http": "node scripts/test-client.mjs http://localhost:3000",
     "test:sse": "node scripts/test-streamable-http-client.mjs http://localhost:3000",
     "test:stdio": "npx -y mcp-remote http://localhost:3000/api/mcp",
-    "test:mcp": "node scripts/test-mcp-tools.mjs http://localhost:3000"
+    "test:mcp": "node scripts/test-mcp-tools.mjs http://localhost:3000",
+    "push": "./scripts/quick-push.sh",
+    "save": "./scripts/quick-push.sh"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
