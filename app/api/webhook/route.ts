@@ -1,42 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { FinancialDataService } from '@/lib/financial-data';
+import { RetrievalService } from '@/lib/retrieval';
 
-// Use Edge Runtime for better Vercel compatibility
+// Use Edge Runtime for public access
 export const runtime = 'edge';
 
 // WhatsApp Cloud API configuration
 const WHATSAPP_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'financial_agent_verify_token';
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'danielverifytoken';
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-// Function to call our existing MCP server
-async function callMCPTool(toolName: string, args: any) {
-  try {
-    // Use production URL if available, otherwise localhost for dev
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://agent-fin-analyst-f2oqqoz8n-danshadkams-projects.vercel.app'
-      : 'http://localhost:3000';
-    
-    const response = await fetch(`${baseUrl}/api/mcp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: `whatsapp-${Date.now()}`,
-        method: 'tools/call',
-        params: {
-          name: toolName,
-          arguments: args,
-        },
-      }),
-    });
+// Initialize services
+const financialService = new FinancialDataService();
+const retrievalService = new RetrievalService();
 
-    const data = await response.json();
-    return data.result?.content?.[0]?.text || 'Sorry, I couldn\'t process that request.';
+// Direct financial tools (avoiding MCP authentication issues)
+async function getFinancialAnalysis(symbol: string) {
+  try {
+    const [stockData, riskData, techData] = await Promise.all([
+      financialService.getStockData(symbol),
+      financialService.getRiskAnalysis(symbol),
+      financialService.getTechnicalAnalysis(symbol)
+    ]);
+    
+    return `📊 Financial Analysis: ${symbol}\n\n*${stockData.name}* (${symbol})\n• Price: $${stockData.price} (${stockData.changePercent.toFixed(2)}%)\n• Volume: ${stockData.volume.toLocaleString()}\n• Market Cap: $${stockData.marketCap ? (stockData.marketCap / 1e9).toFixed(2) : 'N/A'}B\n• P/E Ratio: ${stockData.pe || 'N/A'}\n\n*Risk Analysis:*\n• Risk Rating: ${riskData.riskRating}\n• Beta: ${riskData.beta.toFixed(2)}\n• Volatility: ${(riskData.volatility * 100).toFixed(1)}%\n\n*Technical Analysis:*\n• Trend: ${techData.signals.trend}\n• Recommendation: ${techData.signals.recommendation}\n• RSI: ${techData.indicators.rsi.toFixed(1)}\n\n*Analysis generated at ${new Date().toISOString()}*`;
   } catch (error) {
-    console.error('Error calling MCP server:', error);
-    return 'Sorry, there was an error processing your request. Please try again.';
+    return `Sorry, I couldn't analyze ${symbol}. Please check the symbol and try again.`;
+  }
+}
+
+async function getMarketData() {
+  try {
+    const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA'];
+    const results = await financialService.getMultipleStocks(symbols);
+    
+    let response = '📈 Market Summary:\n\n';
+    results.forEach((stock, index) => {
+      response += `*${symbols[index]}*: $${stock.price} (${stock.changePercent.toFixed(2)}%)\n`;
+    });
+    
+    return response + `\n*Updated: ${new Date().toLocaleString()}*`;
+  } catch (error) {
+    return 'Sorry, I couldn\'t fetch market data at the moment.';
+  }
+}
+
+async function getFinancialChat(message: string) {
+  try {
+    const response = await retrievalService.searchDocuments(message);
+    return `💡 Financial Advice:\n\n${response}\n\n*This is general information and not personalized financial advice.*`;
+  } catch (error) {
+    return 'I can help with financial questions! Try asking about investing, stocks, or market trends.';
   }
 }
 
@@ -128,24 +142,6 @@ function parseUserMessage(message: string) {
   };
 }
 
-// Function to format response for WhatsApp
-function formatForWhatsApp(text: string): string {
-  // Remove markdown formatting for WhatsApp
-  let formatted = text
-    .replace(/#{1,6}\s/g, '') // Remove header markdown
-    .replace(/\*\*(.*?)\*\*/g, '*$1*') // Bold: ** to *
-    .replace(/```[\s\S]*?```/g, '[Raw data available - use web interface for detailed view]') // Remove code blocks
-    .replace(/`([^`]+)`/g, '_$1_') // Inline code to italic
-    .replace(/\n{3,}/g, '\n\n'); // Reduce multiple newlines
-  
-  // Truncate if too long (WhatsApp has limits)
-  if (formatted.length > 4000) {
-    formatted = formatted.substring(0, 3800) + '\n\n_Message truncated. Use web interface for full analysis._';
-  }
-  
-  return formatted;
-}
-
 // Handle WhatsApp webhook verification (GET request)
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -153,11 +149,13 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
   
+  console.log('Webhook verification attempt:', { mode, token, challenge });
+  
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('WhatsApp webhook verified successfully');
+    console.log('✅ WhatsApp webhook verified successfully');
     return new Response(challenge, { status: 200 });
   } else {
-    console.error('WhatsApp webhook verification failed');
+    console.error('❌ WhatsApp webhook verification failed:', { mode, token, expected: VERIFY_TOKEN });
     return new Response('Verification failed', { status: 403 });
   }
 }
@@ -168,7 +166,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Log incoming webhook for debugging
-    console.log('WhatsApp webhook received:', JSON.stringify(body, null, 2));
+    console.log('📱 WhatsApp webhook received:', JSON.stringify(body, null, 2));
     
     // Check if this is a message notification
     if (body.object === 'whatsapp_business_account') {
@@ -181,9 +179,8 @@ export async function POST(request: NextRequest) {
               if (message.type === 'text') {
                 const userMessage = message.text.body;
                 const userPhone = message.from;
-                const messageId = message.id;
                 
-                console.log(`Received message from ${userPhone}: ${userMessage}`);
+                console.log(`📨 Message from ${userPhone}: ${userMessage}`);
                 
                 // Parse the user's message
                 const parsed = parseUserMessage(userMessage);
@@ -192,44 +189,32 @@ export async function POST(request: NextRequest) {
                 try {
                   switch (parsed.action) {
                     case 'analyze':
-                      response = await callMCPTool('get-financial-analysis', {
-                        symbol: parsed.symbol,
-                        analysisType: 'comprehensive',
-                      });
+                      response = parsed.symbol ? await getFinancialAnalysis(parsed.symbol) : 'Please specify a stock symbol to analyze.';
                       break;
                       
                     case 'market':
-                      response = await callMCPTool('get-market-data', {
-                        symbols: ['AAPL', 'GOOGL', 'MSFT', 'TSLA'],
-                        includeIndices: true,
-                      });
+                      response = await getMarketData();
                       break;
                       
                     case 'chat':
-                      response = await callMCPTool('financial-chat', {
-                        query: parsed.query || userMessage,
-                        context: 'WhatsApp conversation',
-                      });
+                      response = parsed.query ? await getFinancialChat(parsed.query) : 'Please ask a financial question.';
                       break;
                       
                     case 'help':
-                      response = `🏦 *Financial Analysis Bot*\n\nI can help you with:\n\n📊 *Stock Analysis*\n• "analyze AAPL"\n• "TSLA analysis"\n• "get MSFT"\n\n📈 *Market Data*\n• "market summary"\n• "indices"\n\n💬 *Financial Advice*\n• "should I invest in tech stocks?"\n• "portfolio advice"\n• "market trends"\n\n🔧 *Powered by real financial data*\nAlpha Vantage • News API • Technical Analysis\n\nJust type your question!`;
+                      response = `🤖 *Financial Analysis Bot*\n\nCommands:\n• "analyze AAPL" - Stock analysis\n• "market summary" - Market overview\n• "should I invest in tech?" - Financial advice\n\nJust text me your financial questions!`;
                       break;
                       
                     default:
-                      response = 'I didn\'t understand that. Type "help" for available commands.';
+                      response = 'I can help with financial analysis! Try "analyze AAPL" or "market summary".';
                   }
                   
-                  // Format and send response
-                  const formattedResponse = formatForWhatsApp(response);
-                  await sendWhatsAppMessage(userPhone, formattedResponse);
+                  // Send response back to user
+                  await sendWhatsAppMessage(userPhone, response);
+                  console.log(`✅ Response sent to ${userPhone}`);
                   
                 } catch (error) {
                   console.error('Error processing message:', error);
-                  await sendWhatsAppMessage(
-                    userPhone, 
-                    'Sorry, I encountered an error processing your request. Please try again later.'
-                  );
+                  await sendWhatsAppMessage(userPhone, 'Sorry, I encountered an error. Please try again.');
                 }
               }
             }
@@ -238,10 +223,10 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    return NextResponse.json({ status: 'success' });
+    return NextResponse.json({ status: 'ok' });
     
   } catch (error) {
-    console.error('WhatsApp webhook error:', error);
+    console.error('❌ Webhook error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

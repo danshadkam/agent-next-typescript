@@ -6,10 +6,7 @@
   "functions": {
     "app/api/whatsapp/route.ts": {
       "maxDuration": 30,
-      "memory": 512,
-      "environment": {
-        "VERCEL_BYPASS_AUTH": "1"
-      }
+      "memory": 512
     },
     "app/api/mcp/route.ts": {
       "maxDuration": 30

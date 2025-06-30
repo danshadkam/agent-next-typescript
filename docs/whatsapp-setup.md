@@ -67,16 +67,16 @@ WHATSAPP_VERIFY_TOKEN=financial_agent_verify_123  # Your chosen verify token
 
 ### Option A: Vercel (Recommended)
 ```bash
-vercel --prod
+npx vercel --prod
 ```
-Your webhook URL: `https://your-app.vercel.app/api/whatsapp`
+Your webhook URL: `https://your-app.vercel.app/api/webhook`
 
 ### Option B: ngrok (Local Testing)
 ```bash
 # Install ngrok first: brew install ngrok
 ngrok http 3000
 ```
-Your webhook URL: `https://abc123.ngrok.io/api/whatsapp`
+Your webhook URL: `https://abc123.ngrok.io/api/webhook`
 
 ### Option C: Tunnelmole (Free Alternative)
 ```bash
@@ -87,7 +87,7 @@ npx tunnelmole 3000
 
 1. Go back to WhatsApp > Configuration in Meta Developer Console
 2. Click "Edit" next to Webhook
-3. Enter your webhook URL: `https://your-domain.com/api/whatsapp`
+3. Enter your webhook URL: `https://your-domain.com/api/webhook`
 4. Enter your **Verify Token** from Step 2.3
 5. Click "Verify and Save"
 
@@ -167,6 +167,10 @@ Bot: 📊 Financial Analysis: AAPL
 - ✅ Verify token matches exactly
 - ✅ Check server logs: `npm run dev`
 - ✅ Test webhook: `curl -X GET "your-webhook-url?hub.mode=subscribe&hub.verify_token=your-token&hub.challenge=test"`
+
+### Bot Not Responding
+- ✅ Check financial services are working: Test locally first
+- ✅ Check environment variables are set
 
 ### Bot Not Responding
 - ✅ Check MCP server is running: `http://localhost:3000/api/mcp`
