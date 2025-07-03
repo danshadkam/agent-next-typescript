@@ -1,252 +1,148 @@
+import { BarChart3, TrendingUp, Bitcoin, Globe, Zap, MessageSquare, Activity } from "lucide-react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, TrendingUp, Shield, Brain, Newspaper, Target } from "lucide-react";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-[#0B1426] via-[#1E293B] to-[#0B1426]">
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Multi-Agent Financial Analyst
-          </h1>
-          <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-            Powered by specialized AI agents working together to provide comprehensive financial analysis, 
-            risk assessment, and investment insights using real-time data and advanced analytics.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              href="/financial"
-              className="inline-flex items-center px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg"
-            >
-              Start Financial Analysis
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Link>
-            <Link 
-              href="/vectorize"
-              className="inline-flex items-center px-8 py-4 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-lg"
-            >
-              Document Search
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Financial Agents Grid */}
-      <div className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-          Specialized Financial Agents
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
+      <div className="relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
+          <div className="text-center">
+            <div className="mb-8 flex justify-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-[#00D4AA] to-[#00B4D8] rounded-2xl flex items-center justify-center shadow-2xl">
+                <Activity className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 ml-4">Market Data Agent</h3>
             </div>
-            <p className="text-gray-600 mb-4">
-              Real-time stock prices, market indices, trading volumes, and comprehensive market overview data.
+            
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+              AI Financial
+              <span className="block bg-gradient-to-r from-[#00D4AA] to-[#00B4D8] bg-clip-text text-transparent">
+                Analyst
+              </span>
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+              Get comprehensive market analysis, stock insights, and crypto intelligence 
+              through interactive AI-powered conversations
             </p>
-            <ul className="text-sm text-gray-500 space-y-1">
-              <li>• Live stock quotes and market data</li>
-              <li>• Major market indices tracking</li>
-              <li>• Trading volume analysis</li>
-              <li>• Market cap and valuation metrics</li>
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Shield className="w-6 h-6 text-yellow-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 ml-4">Risk Analysis Agent</h3>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link
+                href="/financial"
+                className="bg-gradient-to-r from-[#00D4AA] to-[#00B4D8] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
+              >
+                Start Analyzing
+              </Link>
+              <Link
+                href="/vectorize"
+                className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold text-lg border border-white/20 hover:bg-white/20 transition-all duration-300"
+              >
+                RAG Chat
+              </Link>
             </div>
-            <p className="text-gray-600 mb-4">
-              Advanced risk metrics including Beta, VaR, Sharpe ratio, volatility analysis, and portfolio risk assessment.
-            </p>
-            <ul className="text-sm text-gray-500 space-y-1">
-              <li>• Beta and correlation analysis</li>
-              <li>• Value at Risk (VaR) calculations</li>
-              <li>• Sharpe ratio and risk-adjusted returns</li>
-              <li>• Portfolio diversification metrics</li>
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 ml-4">Technical Analysis Agent</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Technical indicators, chart patterns, moving averages, and algorithmic trading signals.
-            </p>
-            <ul className="text-sm text-gray-500 space-y-1">
-              <li>• RSI, MACD, and momentum indicators</li>
-              <li>• Moving averages and trend analysis</li>
-              <li>• Bollinger Bands and volatility bands</li>
-              <li>• Buy/Hold/Sell recommendations</li>
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Newspaper className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 ml-4">News Sentiment Agent</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Financial news analysis, sentiment scoring, and market-moving events detection.
-            </p>
-            <ul className="text-sm text-gray-500 space-y-1">
-              <li>• Real-time news sentiment analysis</li>
-              <li>• Market impact assessment</li>
-              <li>• Earnings and announcement tracking</li>
-              <li>• Social media sentiment monitoring</li>
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Brain className="w-6 h-6 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 ml-4">Document Retrieval Agent</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Search through SEC filings, analyst reports, financial statements, and research documents.
-            </p>
-            <ul className="text-sm text-gray-500 space-y-1">
-              <li>• SEC filings and regulatory documents</li>
-              <li>• Analyst reports and research</li>
-              <li>• Financial statements analysis</li>
-              <li>• Company fundamentals data</li>
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Target className="w-6 h-6 text-indigo-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 ml-4">Portfolio Analysis Agent</h3>
-            </div>
-            <p className="text-gray-600 mb-4">
-              Portfolio optimization, asset allocation, performance tracking, and rebalancing recommendations.
-            </p>
-            <ul className="text-sm text-gray-500 space-y-1">
-              <li>• Portfolio performance metrics</li>
-              <li>• Asset allocation optimization</li>
-              <li>• Diversification analysis</li>
-              <li>• Rebalancing recommendations</li>
-            </ul>
           </div>
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="bg-white py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-            Advanced Financial Intelligence
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Professional Trading Analysis
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Brain className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Multi-Agent Coordination</h3>
-              <p className="text-gray-600">
-                Multiple specialized AI agents work together to provide comprehensive financial analysis from different perspectives.
-              </p>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            Advanced AI tools for comprehensive market research and financial decision-making
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Stock Analysis */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-[#00D4AA]/50 transition-all duration-300">
+            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6">
+              <BarChart3 className="w-6 h-6 text-blue-400" />
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Real-Time Data</h3>
-              <p className="text-gray-600">
-                Access to live market data, real-time price feeds, and up-to-the-minute financial information.
-              </p>
+            <h3 className="text-xl font-semibold text-white mb-4">Stock Analysis</h3>
+            <p className="text-slate-400 leading-relaxed">
+              Deep technical and fundamental analysis of stocks with price targets, key metrics, and performance insights
+            </p>
+          </div>
+
+          {/* Crypto Intelligence */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-[#00D4AA]/50 transition-all duration-300">
+            <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center mb-6">
+              <Bitcoin className="w-6 h-6 text-orange-400" />
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Risk-Aware Analysis</h3>
-              <p className="text-gray-600">
-                Comprehensive risk assessment with advanced metrics to help you make informed investment decisions.
-              </p>
+            <h3 className="text-xl font-semibold text-white mb-4">Crypto Intelligence</h3>
+            <p className="text-slate-400 leading-relaxed">
+              Real-time cryptocurrency analysis including market sentiment, technical indicators, and trend forecasting
+            </p>
+          </div>
+
+          {/* Market Overview */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-[#00D4AA]/50 transition-all duration-300">
+            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-6">
+              <Globe className="w-6 h-6 text-green-400" />
             </div>
+            <h3 className="text-xl font-semibold text-white mb-4">Market Overview</h3>
+            <p className="text-slate-400 leading-relaxed">
+              Comprehensive market summaries including major indices, sector performance, and economic drivers
+            </p>
+          </div>
+
+          {/* Live Data */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-[#00D4AA]/50 transition-all duration-300">
+            <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6">
+              <TrendingUp className="w-6 h-6 text-purple-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-4">Live Market Data</h3>
+            <p className="text-slate-400 leading-relaxed">
+              Real-time price feeds, interactive charts, and watchlist management for informed trading decisions
+            </p>
+          </div>
+
+          {/* AI Chat */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-[#00D4AA]/50 transition-all duration-300">
+            <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center mb-6">
+              <MessageSquare className="w-6 h-6 text-cyan-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-4">Interactive AI Chat</h3>
+            <p className="text-slate-400 leading-relaxed">
+              Natural language conversations for market analysis, trading strategies, and financial insights
+            </p>
+          </div>
+
+          {/* Tech Analysis */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-[#00D4AA]/50 transition-all duration-300">
+            <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center mb-6">
+              <Zap className="w-6 h-6 text-yellow-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-4">Sector Analysis</h3>
+            <p className="text-slate-400 leading-relaxed">
+              Specialized analysis of technology stocks, FAANG performance, growth prospects, and sector trends
+            </p>
           </div>
         </div>
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">
-            Ready to Transform Your Financial Analysis?
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="bg-gradient-to-r from-[#00D4AA]/10 to-[#00B4D8]/10 rounded-3xl p-12 text-center border border-[#00D4AA]/20">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Ready to Start Trading Smarter?
           </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Experience the power of AI-driven financial insights with our multi-agent system. 
-            Get started with comprehensive market analysis today.
+          <p className="text-slate-300 text-lg mb-8 max-w-2xl mx-auto">
+            Access professional-grade financial analysis powered by advanced AI. 
+            Get insights on stocks, crypto, and market trends in real-time.
           </p>
-          <Link 
+          <Link
             href="/financial"
-            className="inline-flex items-center px-8 py-4 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold text-lg"
+            className="inline-flex items-center bg-gradient-to-r from-[#00D4AA] to-[#00B4D8] text-white px-10 py-4 rounded-xl font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-300"
           >
+            <BarChart3 className="w-5 h-5 mr-2" />
             Launch Financial Analyst
-            <ArrowRight className="ml-2 w-5 h-5" />
           </Link>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">FinAnalyst AI</h3>
-              <p className="text-gray-400">
-                Advanced multi-agent financial analysis system powered by AI and real-time data.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-md font-semibold mb-3">Features</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Multi-Agent Analysis</li>
-                <li>Real-Time Data</li>
-                <li>Risk Assessment</li>
-                <li>Portfolio Optimization</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-md font-semibold mb-3">Agents</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Market Data</li>
-                <li>Risk Analysis</li>
-                <li>Technical Analysis</li>
-                <li>News Sentiment</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-md font-semibold mb-3">Disclaimer</h4>
-              <p className="text-gray-400 text-sm">
-                This tool is for educational purposes only. Not financial advice. 
-                Please consult qualified financial advisors.
-              </p>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 FinAnalyst AI. Educational use only.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

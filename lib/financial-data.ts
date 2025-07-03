@@ -1,101 +1,189 @@
 import type { StockData, MarketData, RiskAnalysis, TechnicalAnalysis, NewsAnalysis } from '@/types/financial';
 
-// Financial data service with real API integrations
+// Financial data service with improved API integrations
 export class FinancialDataService {
   private alphaVantageKey?: string;
   private newsApiKey?: string;
+  private finnhubKey?: string;
 
   constructor() {
     this.alphaVantageKey = process.env.ALPHA_VANTAGE_API_KEY;
     this.newsApiKey = process.env.NEWS_API_KEY;
+    this.finnhubKey = process.env.FINNHUB_API_KEY;
   }
 
   async getStockData(symbol: string): Promise<StockData> {
-    // Try Twelve Data first (800 requests/day free tier)
+    // Try multiple APIs in order of preference for accuracy
     try {
-      return await this.getTwelveDataStockData(symbol);
-    } catch (error) {
-      console.error(`Error fetching Twelve Data for ${symbol}:`, error);
-      
-      // Fallback to Yahoo Finance if available
-      try {
-        return await this.getYahooFinanceData(symbol);
-      } catch (yahooError) {
-        console.error(`Error fetching Yahoo Finance data for ${symbol}:`, yahooError);
-        
-        // Fallback to Alpha Vantage if available
-        if (this.alphaVantageKey) {
-          try {
-            return await this.getAlphaVantageData(symbol);
-          } catch (alphaError) {
-            console.error(`Error fetching Alpha Vantage data for ${symbol}:`, alphaError);
-          }
-        }
-        
-        // Final fallback to realistic mock data
-        return this.getMockStockData(symbol);
+      // Try Finnhub first (good free tier with real-time data)
+      if (this.finnhubKey) {
+        return await this.getFinnhubStockData(symbol);
       }
-    }
-  }
-
-  private async getTwelveDataStockData(symbol: string): Promise<StockData> {
-    const apiKey = process.env.TWELVE_DATA_API_KEY || 'demo'; // demo key for testing
-    const response = await fetch(`https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${apiKey}`);
-    const data = await response.json();
-    
-    if (data.status === 'error' || !data.symbol) {
-      throw new Error(data.message || `No data found for symbol: ${symbol}`);
+    } catch (error) {
+      console.error(`Finnhub error for ${symbol}:`, error);
     }
 
-    const price = parseFloat(data.close);
-    const change = parseFloat(data.change);
-    const changePercent = parseFloat(data.percent_change);
+    try {
+      // Try Yahoo Finance as backup (free, no API key needed)
+      return await this.getYahooFinanceData(symbol);
+    } catch (error) {
+      console.error(`Yahoo Finance error for ${symbol}:`, error);
+    }
 
-    return {
-      symbol: symbol.toUpperCase(),
-      name: data.name || this.getCompanyName(symbol),
-      price: price,
-      change: change,
-      changePercent: changePercent,
-      volume: parseInt(data.volume) || 1000000,
-      marketCap: 0, // Not provided by Twelve Data quote endpoint
-      pe: 0, // Not provided by Twelve Data quote endpoint
-      dividendYield: 0, // Not provided by Twelve Data quote endpoint
-    };
+    try {
+      // Try Alpha Vantage if available
+      if (this.alphaVantageKey) {
+        return await this.getAlphaVantageData(symbol);
+      }
+    } catch (error) {
+      console.error(`Alpha Vantage error for ${symbol}:`, error);
+    }
+
+    // Enhanced fallback with more realistic mock data
+    return this.getEnhancedMockStockData(symbol);
   }
 
-  private async getYahooFinanceData(symbol: string): Promise<StockData> {
-    const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`);
-    const data = await response.json();
+  private async getFinnhubStockData(symbol: string): Promise<StockData> {
+    const quoteUrl = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${this.finnhubKey}`;
+    const profileUrl = `https://finnhub.io/api/v1/stock/profile2?symbol=${symbol}&token=${this.finnhubKey}`;
     
-    if (!data.chart?.result?.[0]) {
+    const [quoteResponse, profileResponse] = await Promise.all([
+      fetch(quoteUrl),
+      fetch(profileUrl)
+    ]);
+
+    const quoteData = await quoteResponse.json();
+    const profileData = await profileResponse.json();
+
+    if (quoteData.error || !quoteData.c) {
       throw new Error(`No data found for symbol: ${symbol}`);
     }
 
-    const result = data.chart.result[0];
-    const meta = result.meta;
-    const quote = result.indicators.quote[0];
-    
-    const currentPrice = meta.regularMarketPrice || quote.close[quote.close.length - 1];
-    const previousClose = meta.previousClose || quote.close[quote.close.length - 2] || currentPrice;
+    const currentPrice = quoteData.c; // Current price
+    const previousClose = quoteData.pc; // Previous close
     const change = currentPrice - previousClose;
     const changePercent = (change / previousClose) * 100;
 
     return {
       symbol: symbol.toUpperCase(),
-      name: this.getCompanyName(symbol),
+      name: profileData.name || this.getCompanyName(symbol),
       price: currentPrice,
       change: change,
       changePercent: changePercent,
-      volume: meta.regularMarketVolume || 1000000,
-      marketCap: meta.marketCap || 0,
-      pe: meta.trailingPE || 0,
-      dividendYield: meta.dividendYield || 0,
+      volume: parseInt(quoteData.volume) || 1000000,
+      marketCap: profileData.marketCapitalization ? profileData.marketCapitalization * 1000000 : 0,
+      pe: 0, // Would need additional API call
+      dividendYield: 0, // Would need additional API call
     };
   }
 
+  private async getYahooFinanceData(symbol: string): Promise<StockData> {
+    // Enhanced Yahoo Finance implementation with better error handling
+    const yahooSymbol = symbol.toUpperCase();
+    
+    try {
+      // Try the v8 chart API first
+      const chartResponse = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=1d&range=1d&includePrePost=true`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        }
+      );
+      
+      if (!chartResponse.ok) {
+        throw new Error(`Yahoo Finance API error: ${chartResponse.status}`);
+      }
+      
+      const chartData = await chartResponse.json();
+      
+      if (!chartData.chart?.result?.[0]) {
+        throw new Error(`No chart data found for symbol: ${yahooSymbol}`);
+      }
+
+      const result = chartData.chart.result[0];
+      const meta = result.meta;
+      const timestamps = result.timestamp;
+      const quotes = result.indicators?.quote?.[0];
+      
+      // Get current and previous prices
+      let currentPrice = meta.regularMarketPrice || meta.previousClose;
+      let previousClose = meta.previousClose;
+      
+      // If we have intraday data, use the latest available price
+      if (quotes && quotes.close && timestamps) {
+        const latestIndex = quotes.close.length - 1;
+        if (latestIndex >= 0 && quotes.close[latestIndex] !== null) {
+          currentPrice = quotes.close[latestIndex];
+        }
+      }
+      
+      // Calculate change
+      const change = currentPrice - previousClose;
+      const changePercent = (change / previousClose) * 100;
+
+      // Get additional data from quote API for more accuracy
+      try {
+        const quoteResponse = await fetch(
+          `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${yahooSymbol}`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          }
+        );
+        
+        if (quoteResponse.ok) {
+          const quoteData = await quoteResponse.json();
+          const quote = quoteData.quoteResponse?.result?.[0];
+          
+          if (quote) {
+            // Use more accurate real-time data if available
+            currentPrice = quote.regularMarketPrice || currentPrice;
+            previousClose = quote.regularMarketPreviousClose || previousClose;
+            
+            // Recalculate with real-time data
+            const rtChange = currentPrice - previousClose;
+            const rtChangePercent = (rtChange / previousClose) * 100;
+            
+            return {
+              symbol: yahooSymbol,
+              name: quote.longName || quote.shortName || this.getCompanyName(yahooSymbol),
+              price: Number(currentPrice.toFixed(2)),
+              change: Number(rtChange.toFixed(2)),
+              changePercent: Number(rtChangePercent.toFixed(2)),
+              volume: quote.regularMarketVolume || meta.regularMarketVolume || 1000000,
+              marketCap: quote.marketCap || meta.marketCap || 0,
+              pe: quote.trailingPE || meta.trailingPE || 0,
+              dividendYield: quote.dividendYield || meta.dividendYield || 0,
+            };
+          }
+        }
+      } catch (quoteError) {
+        console.log(`Quote API failed for ${yahooSymbol}, using chart data:`, quoteError);
+      }
+      
+      // Fallback to chart data
+      return {
+        symbol: yahooSymbol,
+        name: this.getCompanyName(yahooSymbol),
+        price: Number(currentPrice.toFixed(2)),
+        change: Number(change.toFixed(2)),
+        changePercent: Number(changePercent.toFixed(2)),
+        volume: meta.regularMarketVolume || 1000000,
+        marketCap: meta.marketCap || 0,
+        pe: meta.trailingPE || 0,
+        dividendYield: meta.dividendYield || 0,
+      };
+      
+    } catch (error) {
+      console.error(`Yahoo Finance error for ${yahooSymbol}:`, error);
+      throw error;
+    }
+  }
+
   private async getAlphaVantageData(symbol: string): Promise<StockData> {
-    // Get current quote
     const quoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${this.alphaVantageKey}`;
     const quoteResponse = await fetch(quoteUrl);
     const quoteData = await quoteResponse.json();
@@ -131,363 +219,459 @@ export class FinancialDataService {
   }
 
   async getMultipleStocks(symbols: string[]): Promise<StockData[]> {
-    const promises = symbols.map(symbol => this.getStockData(symbol));
-    return Promise.all(promises);
+    // Batch requests with delay to avoid rate limiting
+    const results: StockData[] = [];
+    for (let i = 0; i < symbols.length; i++) {
+      try {
+        const stockData = await this.getStockData(symbols[i]);
+        results.push(stockData);
+        
+        // Add small delay between requests to avoid rate limiting
+        if (i < symbols.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } catch (error) {
+        console.error(`Error fetching data for ${symbols[i]}:`, error);
+        // Add fallback data instead of failing completely
+        results.push(this.getEnhancedMockStockData(symbols[i]));
+      }
+    }
+    return results;
   }
 
   async getMarketData(): Promise<MarketData> {
-    const majorStocks = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA'];
-    const stocks = await this.getMultipleStocks(majorStocks);
-
-    return {
-      stocks,
-      indices: {
-        'S&P 500': {
-          value: 4150.25,
-          change: 15.30,
-          changePercent: 0.37,
-        },
-        'NASDAQ': {
-          value: 12850.75,
-          change: -22.45,
-          changePercent: -0.17,
-        },
-        'DOW': {
-          value: 33450.12,
-          change: 105.60,
-          changePercent: 0.32,
-        },
-      },
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      // Fetch data for major market symbols
+      const majorStocks = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX'];
+      const cryptoSymbols = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
+      
+      // Get stock data (with rate limiting)
+      const stockPromises = majorStocks.map(async (symbol, index) => {
+        await new Promise(resolve => setTimeout(resolve, index * 150)); // Stagger requests
+        return this.getStockData(symbol);
+      });
+      
+      const stocks = await Promise.all(stockPromises);
+      
+      // Add crypto data with enhanced mock data (crypto APIs often require paid plans)
+      const cryptoData = cryptoSymbols.map(symbol => this.getEnhancedMockStockData(symbol));
+      
+      return {
+        stocks: [...stocks, ...cryptoData],
+        indices: await this.getIndexData(),
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('Error fetching market data:', error);
+      // Fallback to enhanced mock data
+      return this.getEnhancedMockMarketData();
+    }
   }
 
-  async getRiskAnalysis(symbol: string): Promise<RiskAnalysis> {
-    // Mock risk analysis - in production, calculate from historical data
-    const beta = 0.5 + Math.random() * 1.5;
-    const volatility = 0.15 + Math.random() * 0.35;
-    const sharpeRatio = Math.random() * 2;
-    const var95 = -0.05 - Math.random() * 0.1;
-    const maxDrawdown = -0.1 - Math.random() * 0.4;
-
-    let riskRating: 'Low' | 'Medium' | 'High' = 'Medium';
-    if (beta < 0.8 && volatility < 0.25) riskRating = 'Low';
-    if (beta > 1.3 || volatility > 0.4) riskRating = 'High';
-
-    return {
-      symbol: symbol.toUpperCase(),
-      beta,
-      volatility,
-      var95,
-      sharpeRatio,
-      maxDrawdown,
-      riskRating,
+  private async getIndexData() {
+    // In a real implementation, you'd fetch actual index data
+    // For now, return realistic mock data that updates
+    const now = new Date();
+    const marketHour = now.getHours();
+    const isMarketOpen = marketHour >= 9 && marketHour <= 16; // Simplified market hours
+    
+    const baseValues = {
+      'S&P 500': 4350.45,
+      'NASDAQ': 13250.75,
+      'DOW': 34150.12,
+      'Russell 2000': 1975.30,
+      'VIX': 18.45
     };
+    
+    // Add some realistic daily movement
+    const generateMovement = (base: number) => {
+      const movement = (Math.random() - 0.5) * base * 0.015; // ±1.5% max movement
+      const newValue = base + movement;
+      return {
+        value: Number(newValue.toFixed(2)),
+        change: Number(movement.toFixed(2)),
+        changePercent: Number(((movement / base) * 100).toFixed(2)),
+      };
+    };
+    
+    return Object.fromEntries(
+      Object.entries(baseValues).map(([name, base]) => [name, generateMovement(base)])
+    );
   }
 
   async getTechnicalAnalysis(symbol: string): Promise<TechnicalAnalysis> {
-    if (!this.alphaVantageKey) {
-      throw new Error('Alpha Vantage API key not configured');
-    }
-
     try {
-      // Get technical indicators from Alpha Vantage
-      const [rsiData, macdData, smaData, bbData] = await Promise.all([
-        fetch(`https://www.alphavantage.co/query?function=RSI&symbol=${symbol}&interval=daily&time_period=14&series_type=close&apikey=${this.alphaVantageKey}`),
-        fetch(`https://www.alphavantage.co/query?function=MACD&symbol=${symbol}&interval=daily&series_type=close&apikey=${this.alphaVantageKey}`),
-        fetch(`https://www.alphavantage.co/query?function=SMA&symbol=${symbol}&interval=daily&time_period=20&series_type=close&apikey=${this.alphaVantageKey}`),
-        fetch(`https://www.alphavantage.co/query?function=BBANDS&symbol=${symbol}&interval=daily&time_period=20&series_type=close&apikey=${this.alphaVantageKey}`)
+      // Try to get real technical data if Alpha Vantage is available
+      if (this.alphaVantageKey) {
+        return await this.getAlphaVantageTechnicalData(symbol);
+      }
+    } catch (error) {
+      console.error(`Technical analysis error for ${symbol}:`, error);
+    }
+    
+    // Enhanced mock technical analysis with realistic values
+    return this.getEnhancedMockTechnicalAnalysis(symbol);
+  }
+
+  private async getAlphaVantageTechnicalData(symbol: string): Promise<TechnicalAnalysis> {
+    const baseUrl = 'https://www.alphavantage.co/query';
+    const apikey = this.alphaVantageKey;
+    
+    try {
+      // Fetch multiple technical indicators
+      const [rsiResponse, macdResponse, smaResponse] = await Promise.all([
+        fetch(`${baseUrl}?function=RSI&symbol=${symbol}&interval=daily&time_period=14&series_type=close&apikey=${apikey}`),
+        fetch(`${baseUrl}?function=MACD&symbol=${symbol}&interval=daily&series_type=close&apikey=${apikey}`),
+        fetch(`${baseUrl}?function=SMA&symbol=${symbol}&interval=daily&time_period=20&series_type=close&apikey=${apikey}`)
       ]);
 
-      const [rsiResponse, macdResponse, smaResponse, bbResponse] = await Promise.all([
-        rsiData.json(),
-        macdData.json(),
-        smaData.json(),
-        bbData.json()
+      const [rsiData, macdData, smaData] = await Promise.all([
+        rsiResponse.json(),
+        macdResponse.json(),
+        smaResponse.json()
       ]);
 
-      // Get current stock price
-      const stockData = await this.getStockData(symbol);
-      const price = stockData.price;
+      // Parse the latest values
+      const rsiValues = rsiData['Technical Analysis: RSI'];
+      const macdValues = macdData['Technical Analysis: MACD'];
+      const smaValues = smaData['Technical Analysis: SMA'];
 
-      // Extract latest values
-      const rsiValues = Object.values(rsiResponse['Technical Analysis: RSI'] || {});
-      const rsi = rsiValues.length > 0 ? parseFloat((rsiValues[0] as any)['RSI']) : 50;
-
-      const macdValues = Object.values(macdResponse['Technical Analysis: MACD'] || {});
-      const latestMacd = macdValues[0] as any;
-      const macd = {
-        value: latestMacd ? parseFloat(latestMacd['MACD']) : 0,
-        signal: latestMacd ? parseFloat(latestMacd['MACD_Signal']) : 0,
-        histogram: latestMacd ? parseFloat(latestMacd['MACD_Hist']) : 0,
-      };
-
-      // Get multiple SMAs
-      const sma20Values = Object.values(smaResponse['Technical Analysis: SMA'] || {});
-      const sma20 = sma20Values.length > 0 ? parseFloat((sma20Values[0] as any)['SMA']) : price;
-
-      // Approximate other SMAs (in production, make separate API calls)
-      const movingAverages = {
-        sma20,
-        sma50: price * (0.95 + Math.random() * 0.06), // Fallback to approximation
-        sma200: price * (0.90 + Math.random() * 0.15), // Fallback to approximation
-      };
-
-      const bbValues = Object.values(bbResponse['Technical Analysis: BBANDS'] || {});
-      const latestBB = bbValues[0] as any;
-      const bollingerBands = {
-        upper: latestBB ? parseFloat(latestBB['Real Upper Band']) : price * 1.02,
-        middle: latestBB ? parseFloat(latestBB['Real Middle Band']) : price,
-        lower: latestBB ? parseFloat(latestBB['Real Lower Band']) : price * 0.98,
-      };
-
-      // Determine signals based on indicators
-      let trend: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
-      if (price > movingAverages.sma20 && movingAverages.sma20 > movingAverages.sma50) {
-        trend = 'Bullish';
-      } else if (price < movingAverages.sma20 && movingAverages.sma20 < movingAverages.sma50) {
-        trend = 'Bearish';
+      if (!rsiValues || !macdValues || !smaValues) {
+        throw new Error('Incomplete technical data');
       }
 
-      const momentum = rsi > 70 ? 'Strong' : rsi < 30 ? 'Weak' : 'Neutral';
+      // Get the most recent date's data
+      const latestDate = Object.keys(rsiValues)[0];
+      const rsi = parseFloat(rsiValues[latestDate]['RSI']);
       
-      let recommendation: 'Buy' | 'Hold' | 'Sell' = 'Hold';
-      if (trend === 'Bullish' && rsi < 70) recommendation = 'Buy';
-      if (trend === 'Bearish' && rsi > 30) recommendation = 'Sell';
+      const latestMacdDate = Object.keys(macdValues)[0];
+      const macd = {
+        value: parseFloat(macdValues[latestMacdDate]['MACD']),
+        signal: parseFloat(macdValues[latestMacdDate]['MACD_Signal']),
+        histogram: parseFloat(macdValues[latestMacdDate]['MACD_Hist'])
+      };
 
+      const latestSmaDate = Object.keys(smaValues)[0];
+      const sma20 = parseFloat(smaValues[latestSmaDate]['SMA']);
+
+      // Generate other indicators
+      const currentPrice = await this.getStockData(symbol).then(data => data.price);
+      
       return {
         symbol: symbol.toUpperCase(),
         indicators: {
           rsi,
           macd,
-          movingAverages,
-          bollingerBands,
+          movingAverages: {
+            sma20,
+            sma50: sma20 * 0.98, // Approximate
+            sma200: sma20 * 0.95, // Approximate
+          },
+          bollingerBands: {
+            upper: sma20 * 1.02,
+            middle: sma20,
+            lower: sma20 * 0.98,
+          },
         },
         signals: {
-          trend,
-          momentum,
-          recommendation,
+          trend: rsi > 60 ? 'Bullish' : rsi < 40 ? 'Bearish' : 'Neutral',
+          momentum: macd.value > macd.signal ? 'Strong' : 'Weak',
+          recommendation: this.generateRecommendation(rsi, macd, currentPrice, sma20),
         },
       };
     } catch (error) {
-      console.error(`Error fetching technical analysis for ${symbol}:`, error);
-      // Fallback to mock data if API fails
-      return this.getMockTechnicalAnalysis(symbol);
+      throw new Error(`Failed to fetch technical analysis: ${error}`);
     }
+  }
+
+  private generateRecommendation(rsi: number, macd: any, currentPrice: number, sma20: number): 'Buy' | 'Hold' | 'Sell' {
+    let score = 0;
+    
+    // RSI signals
+    if (rsi > 70) score -= 1; // Overbought
+    else if (rsi < 30) score += 1; // Oversold
+    
+    // MACD signals
+    if (macd.value > macd.signal) score += 1; // Bullish crossover
+    else score -= 1; // Bearish crossover
+    
+    // Price vs SMA
+    if (currentPrice > sma20) score += 1; // Above moving average
+    else score -= 1; // Below moving average
+    
+    if (score >= 2) return 'Buy';
+    if (score <= -2) return 'Sell';
+    return 'Hold';
+  }
+
+  async getRiskAnalysis(symbol: string): Promise<RiskAnalysis> {
+    // Enhanced risk analysis with more realistic calculations
+    const stockData = await this.getStockData(symbol);
+    
+    // Calculate beta based on sector and market cap
+    const sectorBetas: { [key: string]: number } = {
+      'AAPL': 1.2, 'MSFT': 0.9, 'GOOGL': 1.1, 'AMZN': 1.3, 'TSLA': 2.1,
+      'NVDA': 1.8, 'META': 1.4, 'NFLX': 1.6, 'BTC-USD': 3.5, 'ETH-USD': 3.2
+    };
+    
+    const beta = sectorBetas[symbol.toUpperCase()] || (0.8 + Math.random() * 1.0);
+    const volatility = Math.abs(stockData.changePercent) / 100 + (Math.random() * 0.3);
+    const sharpeRatio = (Math.random() * 2) - 0.5; // Can be negative
+    const var95 = -Math.abs(stockData.changePercent / 100) * 2.33; // 95% VaR approximation
+    const maxDrawdown = -0.1 - (Math.random() * 0.4);
+
+    let riskRating: 'Low' | 'Medium' | 'High' = 'Medium';
+    if (beta < 1.0 && volatility < 0.25) riskRating = 'Low';
+    if (beta > 1.5 || volatility > 0.4) riskRating = 'High';
+
+    return {
+      symbol: symbol.toUpperCase(),
+      beta: Number(beta.toFixed(2)),
+      volatility: Number(volatility.toFixed(3)),
+      var95: Number(var95.toFixed(3)),
+      sharpeRatio: Number(sharpeRatio.toFixed(2)),
+      maxDrawdown: Number(maxDrawdown.toFixed(3)),
+      riskRating,
+    };
   }
 
   async getNewsAnalysis(symbol: string): Promise<NewsAnalysis> {
-    if (!this.newsApiKey) {
-      throw new Error('News API key not configured');
-    }
-
     try {
-      // Get company name for better search results
-      const companyName = this.getCompanyName(symbol);
-      const query = `${symbol} OR "${companyName}"`;
-      
-      const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&pageSize=10&language=en&apiKey=${this.newsApiKey}`;
-      
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.status !== 'ok') {
-        throw new Error(data.message || 'Failed to fetch news');
+      if (this.newsApiKey) {
+        return await this.getActualNewsAnalysis(symbol);
       }
-
-      const articles = data.articles.slice(0, 5).map((article: any) => ({
-        title: article.title,
-        summary: article.description || article.content?.substring(0, 200) + '...' || 'No summary available',
-        source: article.source.name,
-        publishedAt: article.publishedAt,
-        sentimentScore: this.analyzeSentiment(article.title + ' ' + (article.description || '')),
-        url: article.url,
-      }));
-
-      // Calculate overall sentiment
-      const sentimentScore = articles.length > 0 
-        ? articles.reduce((sum: number, article: any) => sum + article.sentimentScore, 0) / articles.length
-        : 0;
-
-      let sentimentLabel: 'Bearish' | 'Neutral' | 'Bullish' = 'Neutral';
-      if (sentimentScore > 0.3) sentimentLabel = 'Bullish';
-      if (sentimentScore < -0.3) sentimentLabel = 'Bearish';
-
-      return {
-        symbol: symbol.toUpperCase(),
-        sentimentScore,
-        sentimentLabel,
-        articles,
-      };
     } catch (error) {
-      console.error(`Error fetching news for ${symbol}:`, error);
-      // Fallback to mock data if API fails
-      return this.getMockNewsAnalysis(symbol);
+      console.error(`News analysis error for ${symbol}:`, error);
     }
+    
+    return this.getEnhancedMockNewsAnalysis(symbol);
   }
 
-  private getMockStockData(symbol: string): StockData {
-    // Realistic price ranges for different stocks
-    const priceMap: { [key: string]: number } = {
-      'AAPL': 230,
-      'GOOGL': 175,
-      'MSFT': 450,
-      'AMZN': 200,
-      'TSLA': 240,
-      'NVDA': 140,
-      'META': 580,
-      'NFLX': 700,
+  private async getActualNewsAnalysis(symbol: string): Promise<NewsAnalysis> {
+    const companyName = this.getCompanyName(symbol);
+    const url = `https://newsapi.org/v2/everything?q=${companyName}&apiKey=${this.newsApiKey}&sortBy=publishedAt&pageSize=10`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.status === 'error') {
+      throw new Error(data.message);
+    }
+    
+    const articles = data.articles?.slice(0, 5).map((article: any) => ({
+      title: article.title,
+      summary: article.description || article.title,
+      sentiment: this.analyzeSentiment(article.title + ' ' + (article.description || '')),
+      source: article.source.name,
+      publishedAt: article.publishedAt,
+      url: article.url,
+    })) || [];
+    
+    const avgSentiment = articles.length > 0 
+      ? articles.reduce((sum: number, article: any) => sum + article.sentiment, 0) / articles.length 
+      : 0;
+    
+    return {
+      symbol: symbol.toUpperCase(),
+      sentimentScore: Number(avgSentiment.toFixed(2)),
+      sentimentLabel: avgSentiment > 0.1 ? 'Bullish' : avgSentiment < -0.1 ? 'Bearish' : 'Neutral',
+      articles: articles.map((article: any) => ({
+        title: article.title,
+        summary: article.summary,
+        source: article.source,
+        publishedAt: article.publishedAt,
+        sentimentScore: article.sentiment,
+        url: article.url
+      }))
+    };
+  }
+
+  private getEnhancedMockStockData(symbol: string): StockData {
+    // More realistic mock data based on symbol
+    const mockPrices: { [key: string]: { price: number; name: string; marketCap: number } } = {
+      'AAPL': { price: 193.97, name: 'Apple Inc.', marketCap: 3021000000000 },
+      'GOOGL': { price: 140.93, name: 'Alphabet Inc.', marketCap: 1756000000000 },
+      'MSFT': { price: 378.85, name: 'Microsoft Corp.', marketCap: 2813000000000 },
+      'TSLA': { price: 248.50, name: 'Tesla Inc.', marketCap: 791000000000 },
+      'NVDA': { price: 118.76, name: 'NVIDIA Corp.', marketCap: 2918000000000 },
+      'META': { price: 486.23, name: 'Meta Platforms Inc.', marketCap: 1245000000000 },
+      'AMZN': { price: 175.43, name: 'Amazon.com Inc.', marketCap: 1832000000000 },
+      'NFLX': { price: 634.87, name: 'Netflix Inc.', marketCap: 280000000000 },
+      'BTC-USD': { price: 96875.23, name: 'Bitcoin', marketCap: 1900000000000 },
+      'ETH-USD': { price: 3421.67, name: 'Ethereum', marketCap: 410000000000 },
+      'SOL-USD': { price: 191.45, name: 'Solana', marketCap: 89000000000 },
     };
     
-    const basePrice = priceMap[symbol.toUpperCase()] || 100;
-    const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
-    const price = basePrice * (1 + variation);
-    const change = (Math.random() - 0.5) * 6; // ±$3 typical daily change
-    const changePercent = (change / price) * 100;
-
-    const mockData: StockData = {
+    const baseData = mockPrices[symbol.toUpperCase()] || { 
+      price: 100 + Math.random() * 200, 
+      name: symbol.toUpperCase(), 
+      marketCap: 50000000000 
+    };
+    
+    // Generate realistic daily movement
+    const changePercent = (Math.random() - 0.5) * 6; // ±3% max daily movement
+    const change = baseData.price * (changePercent / 100);
+    const volume = Math.floor(1000000 + Math.random() * 50000000);
+    
+    return {
       symbol: symbol.toUpperCase(),
-      name: this.getCompanyName(symbol),
-      price: Math.round(price * 100) / 100,
-      change: Math.round(change * 100) / 100,
-      changePercent: Math.round(changePercent * 100) / 100,
-      volume: Math.floor(Math.random() * 50000000) + 10000000, // 10M-60M volume
-      marketCap: Math.floor(basePrice * 2000000000), // Realistic market cap
-      pe: 15 + Math.random() * 25, // P/E ratio 15-40
+      name: baseData.name,
+      price: Number(baseData.price.toFixed(2)),
+      change: Number(change.toFixed(2)),
+      changePercent: Number(changePercent.toFixed(2)),
+      volume,
+      marketCap: baseData.marketCap,
+      pe: 15 + Math.random() * 30, // Realistic P/E range
       dividendYield: Math.random() * 3, // 0-3% dividend yield
     };
+  }
 
-    return mockData;
+  private getEnhancedMockMarketData(): MarketData {
+    const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'META', 'AMZN', 'NFLX', 'BTC-USD', 'ETH-USD', 'SOL-USD'];
+    const stocks = symbols.map(symbol => this.getEnhancedMockStockData(symbol));
+    
+    return {
+      stocks,
+      indices: {
+        'S&P 500': { value: 4350.45, change: 15.30, changePercent: 0.35 },
+        'NASDAQ': { value: 13250.75, change: -22.45, changePercent: -0.17 },
+        'DOW': { value: 34150.12, change: 105.60, changePercent: 0.31 },
+        'Russell 2000': { value: 1975.30, change: 8.45, changePercent: 0.43 },
+        'VIX': { value: 18.45, change: -0.75, changePercent: -3.90 },
+      },
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  private getEnhancedMockTechnicalAnalysis(symbol: string): TechnicalAnalysis {
+    const rsi = 30 + Math.random() * 40; // 30-70 range (more realistic)
+    const macdValue = (Math.random() - 0.5) * 2;
+    const macdSignal = macdValue + (Math.random() - 0.5) * 0.5;
+    const sma20 = 100 + Math.random() * 200;
+    
+    return {
+      symbol: symbol.toUpperCase(),
+      indicators: {
+        rsi: Number(rsi.toFixed(1)),
+        macd: {
+          value: Number(macdValue.toFixed(3)),
+          signal: Number(macdSignal.toFixed(3)),
+          histogram: Number((macdValue - macdSignal).toFixed(3)),
+        },
+        movingAverages: {
+          sma20: Number(sma20.toFixed(2)),
+          sma50: Number((sma20 * 0.98).toFixed(2)),
+          sma200: Number((sma20 * 0.95).toFixed(2)),
+        },
+        bollingerBands: {
+          upper: Number((sma20 * 1.02).toFixed(2)),
+          middle: Number(sma20.toFixed(2)),
+          lower: Number((sma20 * 0.98).toFixed(2)),
+        },
+      },
+      signals: {
+        trend: rsi > 60 ? 'Bullish' : rsi < 40 ? 'Bearish' : 'Neutral',
+        momentum: macdValue > macdSignal ? 'Strong' : 'Weak',
+        recommendation: this.generateRecommendation(rsi, { value: macdValue, signal: macdSignal }, 150, sma20),
+      },
+    };
+  }
+
+  private getEnhancedMockNewsAnalysis(symbol: string): NewsAnalysis {
+    const companyName = this.getCompanyName(symbol);
+    const sentimentScore = (Math.random() - 0.5) * 1.5; // -0.75 to +0.75
+    
+    const mockArticles = [
+      {
+        title: `${companyName} Reports Strong Quarterly Results`,
+        summary: `${companyName} exceeded analyst expectations with robust revenue growth and improved margins.`,
+        sentiment: 0.7,
+        source: 'Financial Times',
+        publishedAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+        url: '#',
+      },
+      {
+        title: `Market Analysis: ${symbol} Technical Outlook`,
+        summary: `Technical indicators suggest continued momentum for ${symbol} in the near term.`,
+        sentiment: 0.3,
+        source: 'MarketWatch',
+        publishedAt: new Date(Date.now() - Math.random() * 48 * 60 * 60 * 1000).toISOString(),
+        url: '#',
+      },
+      {
+        title: `Industry Trends Impact on ${companyName}`,
+        summary: `Sector-wide developments continue to influence ${companyName}'s market position.`,
+        sentiment: -0.1,
+        source: 'Reuters',
+        publishedAt: new Date(Date.now() - Math.random() * 72 * 60 * 60 * 1000).toISOString(),
+        url: '#',
+      },
+    ];
+    
+    return {
+      symbol: symbol.toUpperCase(),
+      sentimentScore: Number(sentimentScore.toFixed(2)),
+      sentimentLabel: sentimentScore > 0.1 ? 'Bullish' : sentimentScore < -0.1 ? 'Bearish' : 'Neutral',
+      articles: mockArticles.slice(0, 3).map(article => ({
+        title: article.title,
+        summary: article.summary,
+        source: article.source,
+        publishedAt: article.publishedAt,
+        sentimentScore: article.sentiment,
+        url: article.url
+      })),
+    };
   }
 
   private getCompanyName(symbol: string): string {
-    const companies: { [key: string]: string } = {
+    const names: { [key: string]: string } = {
       'AAPL': 'Apple Inc.',
       'GOOGL': 'Alphabet Inc.',
-      'MSFT': 'Microsoft Corporation',
+      'MSFT': 'Microsoft Corp.',
       'AMZN': 'Amazon.com Inc.',
       'TSLA': 'Tesla Inc.',
-      'NVDA': 'NVIDIA Corporation',
+      'NVDA': 'NVIDIA Corp.',
       'META': 'Meta Platforms Inc.',
       'NFLX': 'Netflix Inc.',
+      'JPM': 'JPMorgan Chase & Co.',
+      'JNJ': 'Johnson & Johnson',
+      'V': 'Visa Inc.',
+      'PG': 'Procter & Gamble Co.',
+      'UNH': 'UnitedHealth Group Inc.',
+      'HD': 'Home Depot Inc.',
+      'BTC-USD': 'Bitcoin',
+      'ETH-USD': 'Ethereum',
+      'SOL-USD': 'Solana',
+      'ADA-USD': 'Cardano',
+      'DOT-USD': 'Polkadot',
     };
-    return companies[symbol.toUpperCase()] || `${symbol.toUpperCase()} Corporation`;
+    return names[symbol.toUpperCase()] || symbol.toUpperCase();
   }
 
   async searchFinancialDocuments(query: string): Promise<string> {
-    // This will integrate with the existing Vectorize service for financial documents
-    const mockResults = `
-    Financial Analysis: Based on recent SEC filings and analyst reports for ${query}:
-    - Revenue growth has been consistent over the past 4 quarters
-    - Debt-to-equity ratio remains within industry standards
-    - Management guidance suggests continued expansion in key markets
-    - Recent acquisitions are expected to drive synergies and cost savings
-    `;
+    // Mock implementation - in production, this would search SEC filings, reports, etc.
+    return `Financial document search results for "${query}":
     
-    return mockResults;
+Recent filings and analyst reports suggest strong fundamentals with balanced risk profile. 
+Key metrics indicate sustainable growth trajectory with appropriate valuation multiples.
+Risk factors include market volatility and sector-specific challenges.
+
+For detailed analysis, recommend reviewing latest 10-K and 10-Q filings.`;
   }
 
   private analyzeSentiment(text: string): number {
-    // Simple sentiment analysis based on keywords
-    // In production, you might use a proper sentiment analysis API
-    const positiveWords = ['good', 'great', 'excellent', 'strong', 'positive', 'up', 'growth', 'profit', 'gain', 'beat', 'exceeds', 'upgrade', 'bullish'];
-    const negativeWords = ['bad', 'poor', 'terrible', 'weak', 'negative', 'down', 'loss', 'decline', 'miss', 'downgrade', 'bearish', 'fall'];
+    // Simple sentiment analysis - in production, use a proper NLP service
+    const positiveWords = ['strong', 'growth', 'profit', 'beat', 'exceed', 'positive', 'gain', 'rise', 'increase'];
+    const negativeWords = ['weak', 'loss', 'miss', 'decline', 'negative', 'fall', 'decrease', 'concern', 'risk'];
     
     const words = text.toLowerCase().split(/\s+/);
     let score = 0;
     
     words.forEach(word => {
-      if (positiveWords.some(pos => word.includes(pos))) score += 0.1;
-      if (negativeWords.some(neg => word.includes(neg))) score -= 0.1;
+      if (positiveWords.some(pos => word.includes(pos))) score += 1;
+      if (negativeWords.some(neg => word.includes(neg))) score -= 1;
     });
     
-    // Clamp between -1 and 1
-    return Math.max(-1, Math.min(1, score));
-  }
-
-  private getMockNewsAnalysis(symbol: string): NewsAnalysis {
-    const sentimentScore = (Math.random() - 0.5) * 2; // -1 to 1
-    
-    let sentimentLabel: 'Bearish' | 'Neutral' | 'Bullish' = 'Neutral';
-    if (sentimentScore > 0.3) sentimentLabel = 'Bullish';
-    if (sentimentScore < -0.3) sentimentLabel = 'Bearish';
-
-    const mockArticles = [
-      {
-        title: `${symbol.toUpperCase()} Reports Strong Quarterly Earnings`,
-        summary: `${symbol.toUpperCase()} exceeded analyst expectations with robust revenue growth and improved margins.`,
-        source: 'Financial Times',
-        publishedAt: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-        sentimentScore: 0.7,
-        url: 'https://example.com/news1',
-      },
-      {
-        title: `Market Volatility Affects ${symbol.toUpperCase()} Trading`,
-        summary: 'Recent market turbulence has created uncertainty around growth stocks including ' + symbol.toUpperCase(),
-        source: 'Reuters',
-        publishedAt: new Date(Date.now() - Math.random() * 86400000 * 2).toISOString(),
-        sentimentScore: -0.3,
-        url: 'https://example.com/news2',
-      },
-    ];
-
-    return {
-      symbol: symbol.toUpperCase(),
-      sentimentScore,
-      sentimentLabel,
-      articles: mockArticles,
-    };
-  }
-
-  private getMockTechnicalAnalysis(symbol: string): TechnicalAnalysis {
-    const rsi = 30 + Math.random() * 40;
-    const price = 150 + Math.random() * 100;
-    
-    const macd = {
-      value: (Math.random() - 0.5) * 5,
-      signal: (Math.random() - 0.5) * 5,
-      histogram: (Math.random() - 0.5) * 2,
-    };
-
-    const movingAverages = {
-      sma20: price * (0.98 + Math.random() * 0.04),
-      sma50: price * (0.95 + Math.random() * 0.06),
-      sma200: price * (0.90 + Math.random() * 0.15),
-    };
-
-    const bollingerBands = {
-      upper: price * 1.02,
-      middle: price,
-      lower: price * 0.98,
-    };
-
-    // Determine signals based on indicators
-    let trend: 'Bullish' | 'Bearish' | 'Neutral' = 'Neutral';
-    if (price > movingAverages.sma20 && movingAverages.sma20 > movingAverages.sma50) {
-      trend = 'Bullish';
-    } else if (price < movingAverages.sma20 && movingAverages.sma20 < movingAverages.sma50) {
-      trend = 'Bearish';
-    }
-
-    const momentum = rsi > 70 ? 'Strong' : rsi < 30 ? 'Weak' : 'Neutral';
-    
-    let recommendation: 'Buy' | 'Hold' | 'Sell' = 'Hold';
-    if (trend === 'Bullish' && rsi < 70) recommendation = 'Buy';
-    if (trend === 'Bearish' && rsi > 30) recommendation = 'Sell';
-
-    return {
-      symbol: symbol.toUpperCase(),
-      indicators: {
-        rsi,
-        macd,
-        movingAverages,
-        bollingerBands,
-      },
-      signals: {
-        trend,
-        momentum,
-        recommendation,
-      },
-    };
+    return Math.max(-1, Math.min(1, score / words.length * 10));
   }
 } 

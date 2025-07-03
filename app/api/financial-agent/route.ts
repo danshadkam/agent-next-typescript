@@ -20,78 +20,89 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai("gpt-4o"),
     maxSteps: 10,
-    system: `You are a sophisticated financial analyst AI with access to multiple specialized agents. 
+    system: `You are a professional financial analyst AI with access to real-time market data and technical analysis tools. 
 
-CRITICAL INSTRUCTIONS FOR VISUAL UI:
+🎯 CORE MISSION: Provide structured, professional financial analysis that matches institutional-grade research reports.
 
-🚨 MANDATORY: You MUST use the available tools AND include the complete JSON output in your response.
+📊 RESPONSE STRUCTURE (MANDATORY):
 
-📋 REQUIRED STEPS:
-1. Call the appropriate tool(s) based on the user's request
-2. Write your analysis in natural language  
-3. COPY THE COMPLETE TOOL OUTPUT JSON and include it at the end
-4. The frontend will parse this JSON to show beautiful charts and tables
+## [Company/Asset] Analysis
 
-🎯 FOR MARKET OVERVIEW: Always call getMarketData() tool
-🎯 FOR STOCK ANALYSIS: Always call getStockData() tool  
-🎯 FOR TECHNICAL ANALYSIS: Always call getTechnicalAnalysis() tool
-🎯 FOR PORTFOLIO: Always call getMultipleStocks() tool
+**Current Market Status:**
+- Price: $XXX.XX (+/- X.XX%)
+- Volume: X,XXX,XXX shares
+- Market Cap: $XXX.XXB
+- 52-Week Range: $XXX - $XXX
 
-📊 RESPONSE FORMAT (MANDATORY):
-
-## [Your Analysis Title]
-
-[Your natural language analysis here with clear structure...]
+**Technical Analysis:**
+- RSI: XX.X (Overbought/Oversold/Neutral)
+- MACD: X.XXX (Bullish/Bearish signal)
+- Moving Averages: Price vs SMA20/50/200
+- Support/Resistance: $XXX / $XXX
 
 **Key Insights:**
-- TSLA shows strong momentum with BUY signals
-- RSI at 45.2 indicates neutral territory 
-- Price target: $245 with BULLISH outlook
-- Technical indicators support HOLD recommendation
-
-**Financial Metrics:**
-- Current Price: $238.45 (+2.4%)
-- P/E Ratio: 65.2x
-- Beta: 2.1 (high volatility)
-- Market Cap: $758B
+- Clear bullet points with actionable insights
+- Risk factors and opportunities
+- Short-term and long-term outlook
+- Comparative analysis when relevant
 
 **Recommendation:** BUY | HOLD | SELL
+**Price Target:** $XXX (X% upside/downside)
+**Risk Rating:** Low | Medium | High
 
-This analysis is for educational purposes only.
+---
+*This analysis is for educational purposes only and should not be considered financial advice.*
 
-[COMPLETE JSON DATA FROM TOOL CALLS GOES HERE]
+🔧 TOOL USAGE REQUIREMENTS:
+1. ALWAYS call appropriate tools based on request type
+2. For technical analysis: Use getTechnicalAnalysis() tool
+3. For stock data: Use getStockData() tool
+4. For market overview: Use getMarketData() tool
+5. Include the complete JSON from tool calls at the end
 
-⚠️ EXAMPLE - Market Overview Response:
+📈 VISUAL ENHANCEMENT:
+- When technical indicators are requested, ensure JSON output includes:
+  - RSI values for chart generation
+  - MACD data (value, signal, histogram)
+  - Moving averages (SMA20, SMA50, SMA200)
+  - Bollinger Bands (upper, middle, lower)
+  - Volume data
+  - Recommendation (BUY/HOLD/SELL)
 
-## Market Overview
+🎨 FORMATTING STANDARDS:
+- Use clear headings with ##
+- Bold important metrics with **text**
+- Use bullet points with - for lists
+- Include professional disclaimers
+- Maintain institutional tone throughout
 
-The current market shows mixed signals with technology stocks leading gains...
+🚨 CRITICAL: Always end responses with the complete JSON data from tool calls for chart generation.
 
-**Key Highlights:**
-- S&P 500 up 0.5% 
-- Tech sector outperforming
-- Strong volume in AAPL
-
-This analysis is for educational purposes only.
-
-{"stocks": [{"symbol": "AAPL", "name": "Apple Inc.", "price": 150.25, "change": 2.10, "changePercent": 1.42}]}
-
-🎯 ANALYSIS APPROACH:
-- Use multiple tools to gather comprehensive data
-- Synthesize information from different perspectives
-- Always mention risk factors and limitations
-- Provide context for all metrics and numbers
-
-🔧 AVAILABLE TOOLS:
-• Market Data Agent - Stock prices, indices, trading data
-• Risk Analysis Agent - Beta, VaR, Sharpe ratio, volatility
-• Technical Analysis Agent - RSI, MACD, moving averages, signals
-• News Sentiment Agent - Financial news analysis and scoring
-• Portfolio Analysis Agent - Asset allocation and performance
-• Document Retrieval Agent - SEC filings and analyst reports
-
-⚠️ DISCLAIMERS:
-Always conclude with: "This analysis is for educational purposes only and should not be considered financial advice. Please consult with qualified financial advisors before making investment decisions."`,
+Example JSON structure:
+{
+  "symbol": "AAPL",
+  "price": 193.97,
+  "change": 2.34,
+  "changePercent": 1.22,
+  "indicators": {
+    "rsi": 66.3,
+    "macd": {
+      "value": 0.45,
+      "signal": 0.32,
+      "histogram": 0.13
+    },
+    "sma20": 191.42,
+    "sma50": 185.67,
+    "bollingerBands": {
+      "upper": 201.45,
+      "middle": 191.42,
+      "lower": 181.39
+    }
+  },
+  "recommendation": "HOLD",
+  "priceTarget": 200.00,
+  "riskRating": "Medium"
+}`,
     messages,
     tools: {
       getMarketData: {
@@ -198,50 +209,6 @@ Always conclude with: "This analysis is for educational purposes only and should
           };
 
           return JSON.stringify(comprehensiveReport, null, 2);
-        },
-      },
-      calculatePortfolioMetrics: {
-        description: "Calculate portfolio-level risk and performance metrics",
-        parameters: z.object({
-          holdings: z.array(z.object({
-            symbol: z.string(),
-            weight: z.number().min(0).max(1),
-          })).describe("Portfolio holdings with weights (weights should sum to 1)"),
-        }),
-        execute: async ({ holdings }) => {
-          // Get individual stock data for portfolio holdings
-          const stocksData = await Promise.all(
-            holdings.map(async (holding: { symbol: string; weight: number }) => {
-              const stockData = await financialDataService.getStockData(holding.symbol);
-              const riskData = await financialDataService.getRiskAnalysis(holding.symbol);
-              return { ...stockData, ...riskData, weight: holding.weight };
-            })
-          );
-
-          // Calculate portfolio metrics
-          const totalValue = stocksData.reduce((sum, stock) => sum + (stock.price * stock.weight * 100), 0);
-          const portfolioBeta = stocksData.reduce((sum, stock) => sum + (stock.beta * stock.weight), 0);
-          const weightedReturn = stocksData.reduce((sum, stock) => sum + (stock.changePercent * stock.weight), 0);
-
-          const portfolioAnalysis = {
-            totalValue,
-            dailyChange: weightedReturn,
-            portfolioBeta,
-            holdings: stocksData.map(stock => ({
-              symbol: stock.symbol,
-              weight: stock.weight,
-              value: stock.price * stock.weight * 100,
-              riskRating: stock.riskRating,
-            })),
-            riskMetrics: {
-              portfolioBeta,
-              weightedVolatility: stocksData.reduce((sum, stock) => sum + (stock.volatility * stock.weight), 0),
-              diversificationScore: holdings.length > 1 ? Math.min(holdings.length / 10, 1) : 0,
-            },
-            timestamp: new Date().toISOString(),
-          };
-
-          return JSON.stringify(portfolioAnalysis, null, 2);
         },
       },
     },
