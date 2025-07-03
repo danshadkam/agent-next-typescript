@@ -20,55 +20,13 @@ import {
   Target,
   PieChart,
   Minimize2,
-  Maximize2,
   Clock,
   ArrowUpRight,
   ArrowDownRight,
   Volume2,
-  Eye,
   Calendar,
-  Info,
-  Gauge,
   Shield
 } from "lucide-react";
-
-// Dynamic imports for Chart.js to avoid SSR issues
-let Chart: any = null;
-let Line: any = null;
-let Bar: any = null;
-let Doughnut: any = null;
-
-// Client-side only chart initialization
-const initializeCharts = async () => {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    const ChartJS = await import('chart.js');
-    const ReactChartJS = await import('react-chartjs-2');
-    
-    // Register Chart.js components
-    ChartJS.Chart.register(
-      ChartJS.CategoryScale,
-      ChartJS.LinearScale,
-      ChartJS.PointElement,
-      ChartJS.LineElement,
-      ChartJS.BarElement,
-      ChartJS.Title,
-      ChartJS.Tooltip,
-      ChartJS.Legend,
-      ChartJS.Filler
-    );
-    
-    Chart = ChartJS.Chart;
-    Line = ReactChartJS.Line;
-    Bar = ReactChartJS.Bar;
-    Doughnut = ReactChartJS.Doughnut;
-    
-    console.log('✅ Chart.js initialized successfully');
-  } catch (error) {
-    console.error('❌ Failed to initialize Chart.js:', error);
-  }
-};
 
 interface MarketData {
   symbol: string;
@@ -87,55 +45,15 @@ interface QuickAction {
   color: string;
 }
 
-interface TechnicalData {
-  rsi: number;
-  macd: { value: number; signal: number; histogram: number };
-  sma20: number;
-  sma50: number;
-  bollingerBands: { upper: number; middle: number; lower: number };
-  volume: number;
-  recommendation: 'BUY' | 'HOLD' | 'SELL';
-}
-
-// Safe Chart Wrapper with Error Boundary
-const SafeChart = ({ type, data, options, className = "" }: any) => {
-  const [isClient, setIsClient] = useState(false);
-  const [chartError, setChartError] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-    initializeCharts();
-  }, []);
-
-  if (!isClient) {
-    return (
-      <div className={`flex items-center justify-center bg-slate-800/50 rounded ${className}`} style={{ height: '160px' }}>
-        <div className="text-slate-400 text-sm">Loading chart...</div>
-      </div>
-    );
-  }
-
-  if (chartError || !Line || !Bar || !Doughnut) {
-    return (
-      <div className={`flex items-center justify-center bg-slate-800/50 rounded ${className}`} style={{ height: '160px' }}>
-        <div className="text-slate-400 text-sm">Chart unavailable</div>
-      </div>
-    );
-  }
-
-  try {
-    const ChartComponent = type === 'line' ? Line : type === 'bar' ? Bar : Doughnut;
-    return <ChartComponent data={data} options={options} />;
-  } catch (error) {
-    console.error('Chart rendering error:', error);
-    setChartError(true);
-    return (
-      <div className={`flex items-center justify-center bg-slate-800/50 rounded ${className}`} style={{ height: '160px' }}>
-        <div className="text-slate-400 text-sm">Chart error</div>
-      </div>
-    );
-  }
-};
+// Simple Chart Placeholder Component
+const ChartPlaceholder = ({ title }: { title: string }) => (
+  <div className="h-40 bg-slate-800/50 rounded-lg flex items-center justify-center border border-slate-600">
+    <div className="text-center">
+      <BarChart3 className="w-8 h-8 text-[#00D4AA] mx-auto mb-2" />
+      <div className="text-slate-400 text-sm">{title}</div>
+    </div>
+  </div>
+);
 
 // Enhanced Message Component for structured responses
 const StructuredMessage = ({ content }: { content: string }) => {
@@ -174,61 +92,15 @@ const StructuredMessage = ({ content }: { content: string }) => {
           </h4>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* RSI Chart */}
+            {/* RSI Chart Placeholder */}
             {indicators.rsi && (
               <div className="bg-[#0B1426] rounded-lg p-4 border border-slate-600">
                 <h5 className="text-white font-semibold mb-3 flex items-center">
-                  <Gauge className="w-4 h-4 mr-2 text-[#00D4AA]" />
+                  <BarChart3 className="w-4 h-4 mr-2 text-[#00D4AA]" />
                   RSI - Relative Strength Index
                 </h5>
-                <div className="h-40 mb-4">
-                  <SafeChart
-                    type="line"
-                    data={{
-                      labels: ['1W ago', '5D ago', '3D ago', '1D ago', 'Current'],
-                      datasets: [{
-                        label: 'RSI',
-                        data: [45, 52, 61, 58, indicators.rsi],
-                        borderColor: indicators.rsi > 70 ? '#ef4444' : indicators.rsi < 30 ? '#10b981' : '#00D4AA',
-                        backgroundColor: `${indicators.rsi > 70 ? '#ef4444' : indicators.rsi < 30 ? '#10b981' : '#00D4AA'}20`,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 6,
-                        pointBackgroundColor: indicators.rsi > 70 ? '#ef4444' : indicators.rsi < 30 ? '#10b981' : '#00D4AA',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                      }]
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                          backgroundColor: '#1E293B',
-                          titleColor: '#ffffff',
-                          bodyColor: '#ffffff',
-                          borderColor: '#00D4AA',
-                          borderWidth: 1,
-                        }
-                      },
-                      scales: {
-                        y: { 
-                          min: 0, 
-                          max: 100, 
-                          grid: { color: '#334155' }, 
-                          ticks: { color: '#94A3B8', font: { size: 11 } },
-                          title: { display: true, text: 'RSI Value', color: '#94A3B8' }
-                        },
-                        x: { 
-                          grid: { color: '#334155' }, 
-                          ticks: { color: '#94A3B8', font: { size: 10 } }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3">
+                <ChartPlaceholder title="RSI Chart" />
+                <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3 mt-4">
                   <span className="text-slate-400 text-sm">Current RSI:</span>
                   <span className={`font-bold text-lg ${indicators.rsi > 70 ? 'text-red-400' : indicators.rsi < 30 ? 'text-green-400' : 'text-[#00D4AA]'}`}>
                     {indicators.rsi.toFixed(1)}
@@ -240,68 +112,15 @@ const StructuredMessage = ({ content }: { content: string }) => {
               </div>
             )}
             
-            {/* MACD Chart */}
+            {/* MACD Chart Placeholder */}
             {indicators.macd && (
               <div className="bg-[#0B1426] rounded-lg p-4 border border-slate-600">
                 <h5 className="text-white font-semibold mb-3 flex items-center">
                   <BarChart3 className="w-4 h-4 mr-2 text-[#00D4AA]" />
                   MACD - Moving Average Convergence Divergence
                 </h5>
-                <div className="h-40 mb-4">
-                  <SafeChart
-                    type="line"
-                    data={{
-                      labels: ['1W ago', '5D ago', '3D ago', '1D ago', 'Current'],
-                      datasets: [
-                        {
-                          label: 'MACD',
-                          data: [-0.5, 0.2, 0.8, 0.6, indicators.macd.value],
-                          borderColor: '#00D4AA',
-                          backgroundColor: 'rgba(0, 212, 170, 0.1)',
-                          fill: false,
-                          tension: 0.4,
-                        },
-                        {
-                          label: 'Signal',
-                          data: [-0.3, 0.1, 0.5, 0.4, indicators.macd.signal],
-                          borderColor: '#f59e0b',
-                          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                          fill: false,
-                          tension: 0.4,
-                        }
-                      ]
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: { 
-                        legend: { 
-                          display: true,
-                          labels: { color: '#94A3B8', font: { size: 10 } }
-                        },
-                        tooltip: {
-                          backgroundColor: '#1E293B',
-                          titleColor: '#ffffff',
-                          bodyColor: '#ffffff',
-                          borderColor: '#00D4AA',
-                          borderWidth: 1,
-                        }
-                      },
-                      scales: {
-                        y: { 
-                          grid: { color: '#334155' }, 
-                          ticks: { color: '#94A3B8', font: { size: 11 } },
-                          title: { display: true, text: 'MACD Value', color: '#94A3B8' }
-                        },
-                        x: { 
-                          grid: { color: '#334155' }, 
-                          ticks: { color: '#94A3B8', font: { size: 10 } }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 bg-slate-800/50 rounded-lg p-3">
+                <ChartPlaceholder title="MACD Chart" />
+                <div className="grid grid-cols-2 gap-4 bg-slate-800/50 rounded-lg p-3 mt-4">
                   <div className="text-center">
                     <div className="text-slate-400 text-xs">MACD</div>
                     <div className="text-[#00D4AA] font-bold">{indicators.macd.value.toFixed(3)}</div>
@@ -319,117 +138,93 @@ const StructuredMessage = ({ content }: { content: string }) => {
               </div>
             )}
           </div>
-          
+
           {/* Technical Summary */}
-          {data.signals && (
-            <div className="mt-6 bg-[#0B1426] rounded-lg p-4 border border-slate-600">
-              <h5 className="text-white font-semibold mb-3 flex items-center">
-                <Target className="w-4 h-4 mr-2 text-[#00D4AA]" />
-                Technical Summary
-              </h5>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-slate-400 text-sm">Trend</div>
-                  <div className={`font-bold ${data.signals.trend === 'Bullish' ? 'text-green-400' : data.signals.trend === 'Bearish' ? 'text-red-400' : 'text-yellow-400'}`}>
-                    {data.signals.trend || 'Neutral'}
-                  </div>
+          <div className="mt-6 bg-[#0B1426] rounded-lg p-4 border border-slate-600">
+            <h5 className="text-white font-semibold mb-4 flex items-center">
+              <Target className="w-4 h-4 mr-2 text-[#00D4AA]" />
+              Technical Summary
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-slate-400 text-sm mb-1">Trend</div>
+                <div className="text-[#00D4AA] font-bold">
+                  {data.trend || (indicators.rsi > 50 ? 'Bullish' : 'Bearish')}
                 </div>
-                <div className="text-center">
-                  <div className="text-slate-400 text-sm">Momentum</div>
-                  <div className={`font-bold ${data.signals.momentum === 'Strong' ? 'text-green-400' : data.signals.momentum === 'Weak' ? 'text-red-400' : 'text-yellow-400'}`}>
-                    {data.signals.momentum || 'Neutral'}
-                  </div>
+              </div>
+              <div className="text-center">
+                <div className="text-slate-400 text-sm mb-1">Momentum</div>
+                <div className={`font-bold ${indicators.rsi > 70 ? 'text-red-400' : indicators.rsi < 30 ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {indicators.rsi > 70 ? 'Overbought' : indicators.rsi < 30 ? 'Oversold' : 'Neutral'}
                 </div>
-                <div className="text-center">
-                  <div className="text-slate-400 text-sm">Recommendation</div>
-                  <div className={`font-bold px-3 py-1 rounded text-sm ${data.signals.recommendation === 'Buy' ? 'bg-green-900 text-green-200' : data.signals.recommendation === 'Sell' ? 'bg-red-900 text-red-200' : 'bg-yellow-900 text-yellow-200'}`}>
-                    {data.signals.recommendation || 'Hold'}
-                  </div>
+              </div>
+              <div className="text-center">
+                <div className="text-slate-400 text-sm mb-1">Recommendation</div>
+                <div className={`font-bold ${data.recommendation === 'BUY' ? 'text-green-400' : data.recommendation === 'SELL' ? 'text-red-400' : 'text-yellow-400'}`}>
+                  {data.recommendation || 'HOLD'}
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
   };
 
-  // Professional content parsing with better structure
   const parseContent = (text: string) => {
-    // Remove any remaining technical data
-    const sections = text.split(/(?=##|\*\*[A-Z])/g).filter(Boolean);
-    
-    return (
-      <div className="space-y-4">
-        {sections.map((section, index) => {
-          const trimmedSection = section.trim();
-          
-          // Handle main headings
-          if (trimmedSection.startsWith('##')) {
-            const title = trimmedSection.split('\n')[0].replace(/^##\s*/, '');
-            const content = trimmedSection.split('\n').slice(1).join('\n').trim();
-            
-            return (
-              <div key={index} className="bg-gradient-to-r from-[#0F172A] to-[#1E293B] rounded-lg p-5 border border-[#00D4AA]/30">
-                <h3 className="text-[#00D4AA] font-bold text-xl mb-4 flex items-center">
-                  <Shield className="w-5 h-5 mr-2" />
-                  {title}
-                </h3>
-                <div className="text-slate-200 leading-relaxed space-y-2">
-                  {content.split('\n').map((line, i) => (
-                    line.trim() ? <p key={i} className="text-slate-300">{line.trim()}</p> : null
-                  ))}
-                </div>
-              </div>
-            );
-          }
-          
-          // Handle key insights sections
-          if (trimmedSection.startsWith('**') && trimmedSection.includes('**')) {
-            const lines = trimmedSection.split('\n');
-            const title = lines[0].replace(/\*\*/g, '');
-            const content = lines.slice(1).join('\n').trim();
-            
-            return (
-              <div key={index} className="bg-[#0F172A] rounded-lg p-4 border-l-4 border-[#00D4AA]">
-                <h4 className="text-[#00D4AA] font-semibold text-lg mb-2 flex items-center">
-                  <Info className="w-4 h-4 mr-2" />
-                  {title}
-                </h4>
-                <div className="text-slate-300 space-y-1">
-                  {content.split('\n').map((line, i) => {
-                    if (line.trim().startsWith('- ')) {
-                      return (
-                        <div key={i} className="flex items-start space-x-2 my-1">
-                          <div className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full mt-2 flex-shrink-0"></div>
-                          <span className="text-slate-300">{line.substring(2)}</span>
-                        </div>
-                      );
-                    }
-                    return line.trim() ? <p key={i} className="text-slate-300">{line}</p> : null;
-                  })}
-                </div>
-              </div>
-            );
-          }
-          
-          // Handle regular content
-          return (
-            <div key={index} className="text-slate-300 leading-relaxed">
-              {trimmedSection.split('\n').map((line, i) => (
-                line.trim() ? <p key={i} className="mb-2">{line}</p> : null
-              ))}
-            </div>
-          );
-        })}
-      </div>
-    );
+    const sections = text.split('\n\n');
+    return sections.map((section, index) => {
+      // Check for headers (lines starting with ##)
+      if (section.startsWith('##')) {
+        return (
+          <h3 key={index} className="text-xl font-bold text-[#00D4AA] mb-4 flex items-center">
+            <Sparkles className="w-5 h-5 mr-2" />
+            {section.replace('##', '').trim()}
+          </h3>
+        );
+      }
+      
+      // Check for bullet points
+      if (section.includes('•') || section.includes('-')) {
+        const items = section.split('\n').filter(line => line.trim().length > 0);
+        return (
+          <ul key={index} className="space-y-2 mb-4">
+            {items.map((item, itemIndex) => (
+              <li key={itemIndex} className="flex items-start space-x-2 text-slate-300">
+                <div className="w-2 h-2 bg-[#00D4AA] rounded-full mt-2 flex-shrink-0"></div>
+                <span>{item.replace(/^[•\-]\s*/, '')}</span>
+              </li>
+            ))}
+          </ul>
+        );
+      }
+      
+      // Regular paragraphs
+      return (
+        <p key={index} className="text-slate-300 leading-relaxed mb-4">
+          {section}
+        </p>
+      );
+    });
   };
-  
+
   return (
-    <div className="space-y-6">
-      {parseContent(cleanTextContent)}
-      {technicalData && renderTechnicalCharts(technicalData)}
+    <div className="bg-gradient-to-r from-[#1E293B] to-[#0F172A] rounded-lg p-6 border border-slate-700 shadow-lg">
+      <div className="flex items-start space-x-3">
+        <div className="w-8 h-8 bg-gradient-to-r from-[#00D4AA] to-[#00B4D8] rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+          <Bot className="w-4 h-4 text-white" />
+        </div>
+        <div className="flex-1">
+          <div className="mb-2">
+            <span className="text-[#00D4AA] font-semibold text-sm">AI Financial Analyst</span>
+            <span className="text-slate-400 text-xs ml-2">Professional Analysis</span>
+          </div>
+          <div className="prose prose-invert max-w-none">
+            {parseContent(cleanTextContent)}
+          </div>
+          {technicalData && renderTechnicalCharts(technicalData)}
+        </div>
+      </div>
     </div>
   );
 };
@@ -499,7 +294,7 @@ export default function FinancialAnalyst() {
     // Initial fetch
     fetchMarketData();
     
-    // Set up periodic updates (every 60 seconds for real data, less frequent to respect API limits)
+    // Set up periodic updates (every 60 seconds)
     const interval = setInterval(fetchMarketData, 60000);
     
     return () => clearInterval(interval);
@@ -531,80 +326,6 @@ export default function FinancialAnalyst() {
       color: "bg-purple-500"
     }
   ];
-
-  // Enhanced chart data with more realistic intraday movement
-  const generateRealisticPriceData = (basePrice: number) => {
-    const data = [];
-    let currentPrice = basePrice * 0.998; // Start slightly below current price
-    
-    for (let i = 0; i < 13; i++) {
-      const randomChange = (Math.random() - 0.5) * basePrice * 0.005; // ±0.5% random movement
-      currentPrice += randomChange;
-      data.push(Number(currentPrice.toFixed(2)));
-    }
-    
-    // Ensure last price matches current price
-    data[data.length - 1] = basePrice;
-    return data;
-  };
-
-  const selectedStock = marketData.find(d => d.symbol === selectedSymbol);
-  const chartData = {
-    labels: ['9:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '1:00', '1:30', '2:00', '2:30', '3:00', '3:30'],
-    datasets: [
-      {
-        label: selectedSymbol,
-        data: selectedStock ? generateRealisticPriceData(selectedStock.price) : [],
-        borderColor: '#00D4AA',
-        backgroundColor: 'rgba(0, 212, 170, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 0,
-        borderWidth: 2,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#1E293B',
-        titleColor: '#F8FAFC',
-        bodyColor: '#F8FAFC',
-        borderColor: '#334155',
-        borderWidth: 1,
-        callbacks: {
-          label: (context: any) => `$${context.parsed.y.toFixed(2)}`
-        }
-      },
-    },
-    scales: {
-      x: {
-        display: true,
-        grid: { color: '#334155' },
-        ticks: { color: '#94A3B8', font: { size: 11 } },
-      },
-      y: {
-        display: true,
-        position: 'right' as const,
-        grid: { color: '#334155' },
-        ticks: {
-          color: '#94A3B8',
-          font: { size: 11 },
-          callback: function(value: any) {
-            return '$' + value.toFixed(2);
-          }
-        },
-      },
-    },
-    interaction: {
-      intersect: false,
-      mode: 'index' as const,
-    },
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -648,22 +369,16 @@ export default function FinancialAnalyst() {
           </div>
         </div>
         <div className="space-y-1">
-          <div className="text-white font-bold text-lg">
-            ${data.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-          <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-            {isPositive ? '+' : ''}${Math.abs(data.change).toFixed(2)}
-          </div>
-          <div className="text-slate-400 text-xs truncate">{data.name}</div>
+          <div className="text-lg font-bold text-white">${data.price.toFixed(2)}</div>
+          <div className="text-xs text-slate-400 truncate">{data.name}</div>
         </div>
       </div>
     );
   };
 
-  // Market Summary Widget
   const MarketSummaryWidget = () => {
-    const totalGainers = marketData.filter(stock => stock.change > 0).length;
-    const totalLosers = marketData.filter(stock => stock.change < 0).length;
+    const gainers = marketData.filter(item => item.changePercent > 0).length;
+    const losers = marketData.filter(item => item.changePercent < 0).length;
     
     return (
       <div className="bg-[#1E293B] rounded-lg p-4 border border-slate-700">
@@ -674,11 +389,11 @@ export default function FinancialAnalyst() {
         <div className="space-y-3">
           <div className="flex justify-between">
             <span className="text-slate-400">Gainers</span>
-            <span className="text-green-400 font-medium">{totalGainers}</span>
+            <span className="text-green-400 font-medium">{gainers}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">Losers</span>
-            <span className="text-red-400 font-medium">{totalLosers}</span>
+            <span className="text-red-400 font-medium">{losers}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">Last Update</span>
@@ -689,7 +404,6 @@ export default function FinancialAnalyst() {
     );
   };
 
-  // Top Movers Widget
   const TopMoversWidget = () => {
     if (marketData.length === 0) {
       return (
@@ -746,15 +460,6 @@ export default function FinancialAnalyst() {
 
   // Portfolio Performance Widget (Mock)
   const PortfolioWidget = () => {
-    const portfolioData = {
-      labels: ['Stocks', 'Crypto', 'Bonds'],
-      datasets: [{
-        data: [65, 25, 10],
-        backgroundColor: ['#00D4AA', '#f59e0b', '#3b82f6'],
-        borderWidth: 0,
-      }]
-    };
-
     return (
       <div className="bg-[#1E293B] rounded-lg p-4 border border-slate-700">
         <h3 className="text-white font-semibold mb-3 flex items-center">
@@ -762,23 +467,7 @@ export default function FinancialAnalyst() {
           Portfolio Mix
         </h3>
         <div className="h-32">
-          <SafeChart
-            type="doughnut"
-            data={portfolioData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'bottom',
-                  labels: {
-                    color: '#94A3B8',
-                    font: { size: 11 }
-                  }
-                }
-              }
-            }}
-          />
+          <ChartPlaceholder title="Portfolio Chart" />
         </div>
       </div>
     );
@@ -895,13 +584,13 @@ export default function FinancialAnalyst() {
     );
   };
 
-  // Quick Analysis Tools Widget
+  // Quick Analysis Widget
   const QuickAnalysisWidget = () => {
     const tools = [
-      { name: 'Options Flow', icon: <TrendingUp className="w-4 h-4" />, query: 'Show me unusual options activity' },
-      { name: 'Insider Trading', icon: <User className="w-4 h-4" />, query: 'Recent insider trading activity' },
-      { name: 'Earnings Calendar', icon: <Calendar className="w-4 h-4" />, query: 'Upcoming earnings reports this week' },
-      { name: 'Sector Analysis', icon: <BarChart3 className="w-4 h-4" />, query: 'Analyze technology sector performance' }
+      { name: 'Options Flow', icon: TrendingUp },
+      { name: 'Insider Trading', icon: User },
+      { name: 'Earnings Calendar', icon: Calendar },
+      { name: 'Sector Analysis', icon: BarChart3 }
     ];
 
     return (
@@ -914,12 +603,11 @@ export default function FinancialAnalyst() {
           {tools.map((tool, index) => (
             <button
               key={index}
-              onClick={() => handleQuickAction(tool.query)}
               className="bg-[#0F172A] hover:bg-slate-700 border border-slate-600 rounded-lg p-3 text-left transition-all duration-200 hover:border-[#00D4AA]/50 group"
             >
               <div className="flex items-center space-x-2 mb-1">
                 <div className="text-[#00D4AA] group-hover:scale-110 transition-transform">
-                  {tool.icon}
+                  <tool.icon className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-white text-xs font-medium">{tool.name}</div>
@@ -929,6 +617,8 @@ export default function FinancialAnalyst() {
       </div>
     );
   };
+
+  const selectedStock = marketData.find(d => d.symbol === selectedSymbol);
 
   return (
     <div className="min-h-screen bg-[#0B1426] text-white">
@@ -949,16 +639,15 @@ export default function FinancialAnalyst() {
               <span>{lastUpdate.toLocaleTimeString()}</span>
             </div>
           </div>
-          
           <div className="flex items-center space-x-4">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search stocks, crypto..."
+                className="bg-[#0F172A] border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00D4AA] w-64"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-[#0F172A] border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00D4AA] w-64"
               />
             </div>
           </div>
@@ -966,22 +655,23 @@ export default function FinancialAnalyst() {
       </header>
 
       <div className="flex h-[calc(100vh-81px)]">
-        {/* Left Sidebar - Market Data */}
+        {/* Left Sidebar */}
         <div className="w-80 bg-[#1E293B] border-r border-slate-700 overflow-y-auto">
           <div className="p-4 space-y-4">
+            {/* Watchlist */}
             <div>
               <h2 className="text-white font-semibold mb-4 flex items-center space-x-2">
                 <Target className="w-4 h-4" />
                 <span>Watchlist</span>
               </h2>
               <div className="space-y-3">
-                {marketData.map((data) => (
-                  <MarketCard key={data.symbol} data={data} />
+                {marketData.slice(0, 8).map((stock) => (
+                  <MarketCard key={stock.symbol} data={stock} />
                 ))}
               </div>
             </div>
-            
-            {/* Dashboard Widgets */}
+
+            {/* Financial Widgets */}
             <MarketSummaryWidget />
             <TopMoversWidget />
             <PortfolioWidget />
@@ -992,30 +682,24 @@ export default function FinancialAnalyst() {
           </div>
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          {/* Chart Section */}
+          {/* Stock Chart Section */}
           <div className="bg-[#0F172A] border-b border-slate-700 p-6">
             <div className="mb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <h3 className="text-2xl font-bold text-white">{selectedSymbol}</h3>
                   <div className="flex items-center space-x-2">
-                    <span className="text-3xl font-bold text-white">
-                      ${selectedStock?.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
-                    </span>
-                    <div className={`flex items-center space-x-1 ${(selectedStock?.change || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {(selectedStock?.change || 0) >= 0 ? 
-                        <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />
-                      }
+                    <span className="text-3xl font-bold text-white">${selectedStock?.price.toFixed(2) || '0.00'}</span>
+                    <div className={`flex items-center space-x-1 ${(selectedStock?.changePercent || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {(selectedStock?.changePercent || 0) >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
                       <span className="font-semibold">
-                        {(selectedStock?.change || 0) >= 0 ? '+' : ''}
-                        {selectedStock?.changePercent.toFixed(2) || '0.00'}%
+                        {(selectedStock?.changePercent || 0) >= 0 ? '+' : ''}{(selectedStock?.changePercent || 0).toFixed(2)}%
                       </span>
                     </div>
                   </div>
                 </div>
-                
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2 text-slate-400">
                     <Volume2 className="w-4 h-4" />
@@ -1030,11 +714,7 @@ export default function FinancialAnalyst() {
             </div>
             
             <div className="h-80">
-              <SafeChart
-                type="line"
-                data={chartData}
-                options={chartOptions}
-              />
+              <ChartPlaceholder title="Price Chart - Chart.js will load here once fully tested" />
             </div>
           </div>
 
@@ -1054,8 +734,8 @@ export default function FinancialAnalyst() {
             </div>
           </div>
 
-          {/* Enhanced Chat Interface */}
-          <div className={`flex-1 flex flex-col bg-[#0F172A] transition-all duration-300 ${chatMinimized ? 'h-16' : ''}`}>
+          {/* Chat Interface */}
+          <div className={`flex-1 flex flex-col bg-[#0F172A] transition-all duration-300 ${chatMinimized ? 'h-20' : ''}`}>
             <div className="flex items-center justify-between p-4 border-b border-slate-700">
               <div className="flex items-center space-x-2">
                 <Bot className="w-5 h-5 text-[#00D4AA]" />
@@ -1066,13 +746,12 @@ export default function FinancialAnalyst() {
                 onClick={() => setChatMinimized(!chatMinimized)}
                 className="p-1 text-slate-400 hover:text-white transition-colors"
               >
-                {chatMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+                <Minimize2 className="w-4 h-4" />
               </button>
             </div>
 
             {!chatMinimized && (
               <>
-                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {messages.length === 0 && (
                     <div className="text-center py-8">
@@ -1094,50 +773,24 @@ export default function FinancialAnalyst() {
                   )}
 
                   {messages.map((message) => (
-                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`flex items-start space-x-3 max-w-4xl ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          message.role === 'user' ? 'bg-blue-500' : 'bg-[#00D4AA]'
-                        }`}>
-                          {message.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                        </div>
-                        <div className={`rounded-lg p-4 ${
-                          message.role === 'user' 
-                            ? 'bg-blue-500 text-white' 
-                            : 'bg-[#1E293B] text-white border border-slate-700'
-                        }`}>
-                          {message.role === 'assistant' ? (
-                            <StructuredMessage content={message.content} />
-                          ) : (
-                            <div className="prose prose-invert prose-sm max-w-none">
-                              {message.content}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="flex items-start space-x-3 max-w-3xl">
-                        <div className="w-8 h-8 rounded-full bg-[#00D4AA] flex items-center justify-center">
-                          <Bot className="w-4 h-4" />
-                        </div>
-                        <div className="bg-[#1E293B] rounded-lg p-4 border border-slate-700">
-                          <div className="flex space-x-1">
-                            <div className="w-2 h-2 bg-[#00D4AA] rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-[#00D4AA] rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                            <div className="w-2 h-2 bg-[#00D4AA] rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    <div key={message.id}>
+                      {message.role === "user" ? (
+                        <div className="flex items-start space-x-3 justify-end">
+                          <div className="bg-[#00D4AA] rounded-lg p-4 max-w-xl">
+                            <p className="text-white">{message.content}</p>
+                          </div>
+                          <div className="w-8 h-8 bg-[#334155] rounded-full flex items-center justify-center flex-shrink-0">
+                            <User className="w-4 h-4 text-white" />
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <StructuredMessage content={message.content} />
+                      )}
                     </div>
-                  )}
+                  ))}
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input */}
                 <div className="p-4 border-t border-slate-700">
                   <form
                     onSubmit={(e) => {
@@ -1150,11 +803,10 @@ export default function FinancialAnalyst() {
                     className="flex space-x-3"
                   >
                     <input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
                       placeholder="Ask about any stock, crypto, technical analysis, or market insights..."
                       className="flex-1 bg-[#1E293B] border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00D4AA]"
-                      disabled={isLoading}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
                     />
                     <button
                       type="submit"
