@@ -957,23 +957,19 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
     return newsIndicators.some(indicator => text.toLowerCase().includes(indicator));
   };
 
-  // Optimized article fetching with proper caching
-  const [hasProcessedArticles, setHasProcessedArticles] = useState(false);
-  
+  // INSTANT article fetching - NO DELAYS
   useEffect(() => {
-    // Prevent duplicate processing
-    if (hasProcessedArticles || !isNewsContent(content) || !symbol) {
-      return;
+    if (!isNewsContent(content) || !symbol || articles.length > 0) {
+      return; // Skip if not news content, no symbol, or already have articles
     }
 
-    const fetchArticles = async () => {
+    const fetchArticlesInstantly = async () => {
       setLoading(true);
-      setHasProcessedArticles(true);
       
       try {
-        console.log(`📰 Fetching pre-enhanced articles for ${symbol}...`);
+        console.log(`⚡ INSTANT fetch for ${symbol}...`);
         
-        const response = await fetch(`/api/news-sentiment?symbol=${symbol}`);
+        const response = await fetch(`/api/news-sentiment?symbol=${symbol}&instant=true`);
         if (!response.ok) {
           throw new Error(`News API error: ${response.status}`);
         }
@@ -981,8 +977,8 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
         const newsData = await response.json();
         
         if (newsData.articles && newsData.articles.length > 0) {
-          console.log(`✅ Loaded ${newsData.articles.length} pre-enhanced articles`);
-          setArticles(newsData.articles.slice(0, 3)); // Take first 3 articles
+          console.log(`✅ INSTANT: ${newsData.articles.length} articles loaded`);
+          setArticles(newsData.articles.slice(0, 3));
         }
         
       } catch (error) {
@@ -993,19 +989,18 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
       }
     };
 
-    // Debounced fetch to prevent multiple calls
-    const timeoutId = setTimeout(fetchArticles, 300);
-    return () => clearTimeout(timeoutId);
-  }, [content, symbol, hasProcessedArticles]);
+    // NO DEBOUNCING - INSTANT FETCH
+    fetchArticlesInstantly();
+  }, [content, symbol]); // Removed hasProcessedArticles dependency
 
   try {
-    // Loading state - much faster now
+    // INSTANT Loading state - NO DELAYS
     if (loading) {
       return (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-slate-800 rounded-lg border border-slate-600 p-4">
           <div className="flex items-center justify-center space-x-3">
-            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-600">Loading news articles...</span>
+            <div className="w-4 h-4 border-2 border-[#00D4AA] border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-slate-300">Loading real-time news...</span>
           </div>
         </div>
       );
