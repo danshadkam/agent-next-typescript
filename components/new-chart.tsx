@@ -66,12 +66,31 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
     await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
     
     const periodConfigs = {
+      // Minute-level data
+      '5M': { points: 60, hours: 5/60, volatility: 0.001, trendStrength: 0.001 },
+      '15M': { points: 60, hours: 15/60, volatility: 0.002, trendStrength: 0.002 },
+      '30M': { points: 60, hours: 0.5, volatility: 0.003, trendStrength: 0.003 },
+      '1H': { points: 60, hours: 1, volatility: 0.004, trendStrength: 0.005 },
+      '4H': { points: 60, hours: 4, volatility: 0.006, trendStrength: 0.008 },
+      
+      // Day-level data
       '1D': { points: 78, hours: 6.5, volatility: 0.008, trendStrength: 0.01 },
+      '3D': { points: 72, hours: 72, volatility: 0.012, trendStrength: 0.015 },
+      '5D': { points: 120, hours: 120, volatility: 0.015, trendStrength: 0.018 },
+      
+      // Week-level data
       '1W': { points: 35, hours: 35 * 24, volatility: 0.015, trendStrength: 0.02 },
+      '2W': { points: 70, hours: 70 * 24, volatility: 0.020, trendStrength: 0.035 },
+      
+      // Month-level data
       '1M': { points: 22, hours: 22 * 24, volatility: 0.025, trendStrength: 0.05 },
       '3M': { points: 65, hours: 65 * 24, volatility: 0.035, trendStrength: 0.08 },
+      '6M': { points: 130, hours: 130 * 24, volatility: 0.040, trendStrength: 0.10 },
+      
+      // Year-level data
       'YTD': { points: 180, hours: 180 * 24, volatility: 0.045, trendStrength: 0.12 },
       '1Y': { points: 252, hours: 252 * 24, volatility: 0.055, trendStrength: 0.20 },
+      '2Y': { points: 500, hours: 2 * 365 * 24, volatility: 0.060, trendStrength: 0.30 },
       '5Y': { points: 260, hours: 5 * 365 * 24, volatility: 0.065, trendStrength: 0.40 },
       'MAX': { points: 520, hours: 10 * 365 * 24, volatility: 0.075, trendStrength: 0.60 }
     };
@@ -140,6 +159,33 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
     const progress = index / (totalPoints - 1);
     
     switch (period) {
+      // Minute intervals
+      case '5M':
+        const minutes5 = progress * 5;
+        const time5 = new Date(now.getTime() - (5 - minutes5) * 60000);
+        return time5.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      
+      case '15M':
+        const minutes15 = progress * 15;
+        const time15 = new Date(now.getTime() - (15 - minutes15) * 60000);
+        return time15.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      
+      case '30M':
+        const minutes30 = progress * 30;
+        const time30 = new Date(now.getTime() - (30 - minutes30) * 60000);
+        return time30.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      
+      case '1H':
+        const minutes60 = progress * 60;
+        const time60 = new Date(now.getTime() - (60 - minutes60) * 60000);
+        return time60.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      
+      case '4H':
+        const hours4 = progress * 4;
+        const time4H = new Date(now.getTime() - (4 - hours4) * 3600000);
+        return time4H.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      
+      // Day intervals
       case '1D':
         const marketStart = new Date(now);
         marketStart.setHours(9, 30, 0, 0);
@@ -147,22 +193,71 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
         const time = new Date(marketStart.getTime() + minutes * 60000);
         return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
       
+      case '3D':
+        const days3 = progress * 3;
+        const time3D = new Date(now.getTime() - (3 - days3) * 24 * 60 * 60 * 1000);
+        return time3D.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      
+      case '5D':
+        const days5 = progress * 5;
+        const time5D = new Date(now.getTime() - (5 - days5) * 24 * 60 * 60 * 1000);
+        return time5D.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      
+      // Week intervals
       case '1W':
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const dayTime = new Date(weekAgo.getTime() + progress * 7 * 24 * 60 * 60 * 1000);
         return dayTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       
+      case '2W':
+        const weeks2Ago = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        const time2W = new Date(weeks2Ago.getTime() + progress * 14 * 24 * 60 * 60 * 1000);
+        return time2W.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      // Month intervals
       case '1M':
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const timeMonth = new Date(monthAgo.getTime() + progress * 30 * 24 * 60 * 60 * 1000);
+        return timeMonth.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
       case '3M':
-        const monthsAgo = period === '1M' ? 1 : 3;
-        const monthStart = new Date(now.getTime() - monthsAgo * 30 * 24 * 60 * 60 * 1000);
-        const monthTime = new Date(monthStart.getTime() + progress * monthsAgo * 30 * 24 * 60 * 60 * 1000);
-        return monthTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const months3Ago = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        const time3M = new Date(months3Ago.getTime() + progress * 90 * 24 * 60 * 60 * 1000);
+        return time3M.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      case '6M':
+        const months6Ago = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+        const time6M = new Date(months6Ago.getTime() + progress * 180 * 24 * 60 * 60 * 1000);
+        return time6M.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      // Year intervals
+      case 'YTD':
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        const ytdTime = new Date(yearStart.getTime() + progress * (now.getTime() - yearStart.getTime()));
+        return ytdTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      case '1Y':
+        const year1Ago = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        const time1Y = new Date(year1Ago.getTime() + progress * 365 * 24 * 60 * 60 * 1000);
+        return time1Y.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      
+      case '2Y':
+        const years2Ago = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
+        const time2Y = new Date(years2Ago.getTime() + progress * 2 * 365 * 24 * 60 * 60 * 1000);
+        return time2Y.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      
+      case '5Y':
+        const years5Ago = new Date(now.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
+        const time5Y = new Date(years5Ago.getTime() + progress * 5 * 365 * 24 * 60 * 60 * 1000);
+        return time5Y.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      
+      case 'MAX':
+        const years10Ago = new Date(now.getTime() - 10 * 365 * 24 * 60 * 60 * 1000);
+        const timeMAX = new Date(years10Ago.getTime() + progress * 10 * 365 * 24 * 60 * 60 * 1000);
+        return timeMAX.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
       
       default:
-        const yearStart = new Date(now.getFullYear() - (period === '5Y' ? 5 : period === 'MAX' ? 10 : 1), 0, 1);
-        const yearTime = new Date(yearStart.getTime() + progress * (period === '5Y' ? 5 : period === 'MAX' ? 10 : 1) * 365 * 24 * 60 * 60 * 1000);
-        return yearTime.toLocaleDateString('en-US', { month: 'short', year: period === '1Y' ? undefined : '2-digit' });
+        return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     }
   };
 
@@ -446,30 +541,85 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
         )}
       </div>
 
-      {/* Enhanced Time Period Controls */}
+      {/* Enhanced Time Period Controls with Categories */}
       <div className="p-4 bg-slate-800 border-t border-slate-600">
-        <div className="flex flex-wrap gap-2 mb-3">
-          {['1D', '1W', '1M', '3M', 'YTD', '1Y', '5Y', 'MAX'].map((period) => (
-            <button
-              key={period}
-              onClick={() => handlePeriodClick(period)}
-              disabled={isLoading}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
-                selectedPeriod === period 
-                  ? 'bg-blue-500 text-white shadow-lg transform scale-105' 
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
-              }`}
-            >
-              {period}
-              {isLoading && selectedPeriod === period && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              )}
-            </button>
-          ))}
+        {/* Organized Time Period Buttons */}
+        <div className="space-y-3">
+          {/* Intraday Periods */}
+          <div>
+            <div className="text-xs text-slate-400 mb-2 font-medium">Intraday</div>
+            <div className="flex flex-wrap gap-1">
+              {['5M', '15M', '30M', '1H', '4H'].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => handlePeriodClick(period)}
+                  disabled={isLoading}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                    selectedPeriod === period 
+                      ? 'bg-blue-500 text-white shadow-md transform scale-105' 
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
+                  }`}
+                >
+                  {period}
+                  {isLoading && selectedPeriod === period && (
+                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Daily/Weekly Periods */}
+          <div>
+            <div className="text-xs text-slate-400 mb-2 font-medium">Daily & Weekly</div>
+            <div className="flex flex-wrap gap-1">
+              {['1D', '3D', '5D', '1W', '2W'].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => handlePeriodClick(period)}
+                  disabled={isLoading}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                    selectedPeriod === period 
+                      ? 'bg-green-500 text-white shadow-md transform scale-105' 
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
+                  }`}
+                >
+                  {period}
+                  {isLoading && selectedPeriod === period && (
+                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Monthly/Yearly Periods */}
+          <div>
+            <div className="text-xs text-slate-400 mb-2 font-medium">Long Term</div>
+            <div className="flex flex-wrap gap-1">
+              {['1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y', 'MAX'].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => handlePeriodClick(period)}
+                  disabled={isLoading}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                    selectedPeriod === period 
+                      ? 'bg-purple-500 text-white shadow-md transform scale-105' 
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
+                  }`}
+                >
+                  {period}
+                  {isLoading && selectedPeriod === period && (
+                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         
         {/* Chart controls */}
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-xs mt-4 pt-3 border-t border-slate-700">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded ${chartMetrics?.isPositive ? 'bg-green-400' : 'bg-red-400'}`}></div>
@@ -482,10 +632,14 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsRealTime(!isRealTime)}
-              className={`px-2 py-1 rounded text-xs ${isRealTime ? 'bg-green-600 text-white' : 'bg-slate-600 text-slate-300'}`}
+              className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                isRealTime 
+                  ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm' 
+                  : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+              }`}
             >
               {isRealTime ? '🔴 Live' : '⏸️ Static'}
             </button>

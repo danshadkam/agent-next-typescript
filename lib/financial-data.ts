@@ -437,6 +437,34 @@ export class FinancialDataService {
 
   async getNewsAnalysis(symbol: string): Promise<NewsAnalysis> {
     try {
+      // First try our enhanced news sentiment API
+      const newsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/news-sentiment?symbol=${symbol}`);
+      
+      if (newsResponse.ok) {
+        const newsData = await newsResponse.json();
+        
+        // Transform the enhanced news data to match our NewsAnalysis interface
+        return {
+          symbol: symbol.toUpperCase(),
+          sentimentScore: Number(newsData.sentimentScore.toFixed(2)),
+          sentimentLabel: newsData.overallSentiment === 'positive' ? 'Bullish' : 
+                          newsData.overallSentiment === 'negative' ? 'Bearish' : 'Neutral',
+          articles: newsData.articles.slice(0, 5).map((article: any) => ({
+            title: article.title,
+            summary: article.summary,
+            source: article.source,
+            publishedAt: article.publishedAt,
+            sentimentScore: article.sentimentScore,
+            url: article.url
+          }))
+        };
+      }
+    } catch (error) {
+      console.error(`Enhanced news sentiment API error for ${symbol}:`, error);
+    }
+
+    try {
+      // Fallback to original news API if available
       if (this.newsApiKey) {
         return await this.getActualNewsAnalysis(symbol);
       }
@@ -444,6 +472,7 @@ export class FinancialDataService {
       console.error(`News analysis error for ${symbol}:`, error);
     }
     
+    // Final fallback to enhanced mock data
     return this.getEnhancedMockNewsAnalysis(symbol);
   }
 

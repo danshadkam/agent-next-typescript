@@ -676,6 +676,85 @@ const StructuredMessage = ({ content, marketData, selectedSymbol }: {
         .replace(/JSON[\s\S]*?:/gi, '') // Remove JSON headers
         .replace(/Data Structure[\s\S]*?:/gi, '') // Remove data structure sections
         .trim();
+
+      // Enhanced news article detection and formatting
+      const newsArticleRegex = /([^.!?]*(?:Reports?|Announces?|Stock|Shares|Earnings|Revenue|Headlines?|News|Articles?)[^.!?]*[.!?])/gi;
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const sourceRegex = /(?:Source:|From:|Via:)\s*([^,\n]+)/gi;
+      const dateRegex = /(?:Published:|Date:|Yesterday|Today|\d{1,2}\/\d{1,2}\/\d{4}|\w+ \d{1,2}, \d{4})/gi;
+
+      // Format news articles with enhanced styling
+      cleanText = cleanText.replace(newsArticleRegex, (match) => {
+        // Check if this looks like a news headline
+        const isNewsHeadline = /Reports?|Announces?|Stock|Shares|Earnings|Revenue|Headlines?|News/i.test(match);
+        if (isNewsHeadline) {
+          return `<div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 my-3 rounded-r-lg">
+            <div class="flex items-start space-x-3">
+              <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+              <div>
+                <h4 class="font-semibold text-slate-900 mb-1">📰 ${match.trim()}</h4>
+                <div class="text-xs text-slate-500">Market News • Real-time analysis</div>
+              </div>
+            </div>
+          </div>`;
+        }
+        return match;
+      });
+
+      // Format URLs as clickable links with enhanced styling
+      cleanText = cleanText.replace(urlRegex, (url) => {
+        // Extract domain for display
+        let domain = url;
+        try {
+          domain = new URL(url).hostname.replace('www.', '');
+        } catch (e) {
+          domain = url.substring(0, 30) + '...';
+        }
+        
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
+          class="inline-flex items-center space-x-2 bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-sm font-medium transition-colors group">
+          <span>🔗</span>
+          <span>${domain}</span>
+          <span class="group-hover:translate-x-1 transition-transform">→</span>
+        </a>`;
+      });
+
+      // Format sources with enhanced styling
+      cleanText = cleanText.replace(sourceRegex, (match, source) => {
+        return `<div class="inline-flex items-center space-x-2 bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">
+          <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+          <span>Source: ${source.trim()}</span>
+        </div>`;
+      });
+
+      // Format dates with enhanced styling
+      cleanText = cleanText.replace(dateRegex, (match) => {
+        return `<span class="inline-flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+          <span>📅</span>
+          <span>${match}</span>
+        </span>`;
+      });
+
+      // Enhanced sentiment indicators
+      const sentimentRegex = /(Bullish|Bearish|Positive|Negative|Neutral|Optimistic|Pessimistic|sentiment)/gi;
+      cleanText = cleanText.replace(sentimentRegex, (match) => {
+        const sentiment = match.toLowerCase();
+        let bgColor = 'bg-gray-100 text-gray-700';
+        let icon = '📊';
+        
+        if (['bullish', 'positive', 'optimistic'].includes(sentiment)) {
+          bgColor = 'bg-green-100 text-green-700';
+          icon = '📈';
+        } else if (['bearish', 'negative', 'pessimistic'].includes(sentiment)) {
+          bgColor = 'bg-red-100 text-red-700';
+          icon = '📉';
+        }
+        
+        return `<span class="inline-flex items-center space-x-1 ${bgColor} px-2 py-1 rounded-full text-xs font-medium">
+          <span>${icon}</span>
+          <span>${match}</span>
+        </span>`;
+      });
       
       return cleanText
         .replace(/##\s*(.*)/g, '<h3 class="text-xl font-bold text-slate-800 mb-3 flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>$1</h3>')
@@ -1140,7 +1219,7 @@ export default function FinancialAnalyst() {
     },
     {
       label: "News Sentiment",
-      query: `Get news sentiment analysis for ${selectedSymbol} with recent headlines and market impact assessment`,
+      query: `Get comprehensive news sentiment analysis for ${selectedSymbol} with recent headlines, article sources, and market impact assessment including links to actual news articles`,
       icon: <Activity className="w-4 h-4" />,
       color: "bg-orange-500"
     }
