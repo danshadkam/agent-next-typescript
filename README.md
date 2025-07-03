@@ -1,63 +1,89 @@
-# RAG Next.js TypeScript Application
+# Financial Analyst AI - Professional Trading Dashboard
 
-A modern **Retrieval-Augmented Generation (RAG)** chat application built with Next.js, TypeScript, and powered by OpenAI's GPT models with vector-based document retrieval using Vectorize.io.
+A comprehensive **AI-powered financial analysis platform** built with Next.js, TypeScript, and OpenAI's GPT-4. Features real-time market data, advanced charting, news sentiment analysis, and professional-grade financial intelligence.
 
 ## 🚀 Features
 
-- **AI-Powered Chat**: Interactive chat interface with GPT-4o-mini
-- **Document Retrieval**: RAG system that retrieves relevant context from vectorized documents
-- **Real-time Sources**: View document sources that inform AI responses
-- **Modern UI**: Clean, responsive interface built with Tailwind CSS
-- **Type Safety**: Full TypeScript implementation
+### 📊 **Advanced Market Analysis**
+- **Real-time Market Data**: Live stock prices, volume, and market cap data
+- **Interactive Charts**: Professional trading charts with 18 time periods (5M to MAX)
+- **Technical Indicators**: RSI, MACD, moving averages, and trading signals
+- **Candlestick Charts**: Professional-grade price action visualization
+- **Market Widgets**: Top movers, portfolio tracker, crypto tracker, economic calendar
+
+### 🤖 **AI-Powered Financial Intelligence**
+- **GPT-4 Financial Agent**: Comprehensive stock analysis and investment insights
+- **Technical Analysis**: Automated RSI, MACD, and momentum indicator analysis
+- **Risk Assessment**: Beta calculation, volatility metrics, and risk scoring
+- **Price Targets**: AI-generated price predictions with confidence intervals
+- **Investment Recommendations**: Buy/Hold/Sell suggestions with detailed reasoning
+
+### 📰 **News Sentiment Analysis**
+- **Real-time News Feed**: Live market news with sentiment scoring
+- **Newsletter-style Summaries**: AI-enhanced article breakdowns
+- **Market Impact Analysis**: How news affects stock performance
+- **Multiple Sources**: Reuters, Bloomberg, MarketWatch, and more
+- **Sentiment Tracking**: Positive/negative/neutral sentiment with confidence scores
+
+### 💼 **Professional Trading Interface**
+- **Dark Theme**: Professional trading terminal aesthetic
+- **Multi-symbol Tracking**: Monitor multiple stocks simultaneously
+- **Quick Actions**: Instant analysis for popular stocks
+- **Market Overview**: Real-time indices and market status
+- **Portfolio Management**: Track holdings and performance
 
 ## 🛠️ Tech Stack
 
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
-- **AI/ML**: OpenAI GPT-4o-mini, AI SDK
-- **Vector Database**: Vectorize.io
-- **Styling**: Tailwind CSS
+- **AI/ML**: OpenAI GPT-4o for financial analysis
+- **Styling**: Tailwind CSS with professional dark theme
 - **Icons**: Lucide React
+- **Data**: Real-time financial data APIs
+- **Charts**: Custom React components with interactive visualizations
 
 ## 📋 Prerequisites
 
 Before setting up this project, you'll need:
 
 1. **Node.js** (v18 or higher)
-2. **pnpm**: [Install pnpm](https://pnpm.io/installation)
+2. **npm** or **pnpm**: [Install pnpm](https://pnpm.io/installation) (recommended)
 3. **OpenAI API Key**: [Get one here](https://platform.openai.com/api-keys)
-4. **Vectorize.io Account**: [Sign up here](https://vectorize.io)
 
 ## 🔧 Installation
 
-1. **Install dependencies**
+1. **Clone the repository**
+
+   ```bash
+   git clone <your-repo-url>
+   cd agent-next-typescript
+   ```
+
+2. **Install dependencies**
 
    ```bash
    pnpm install
+   # or
+   npm install
    ```
 
-2. **Set up environment variables**
+3. **Set up environment variables**
 
-   Create a `.env.local` file in the root directory of your project:
+   Create a `.env.local` file in the root directory:
 
    ```bash
-   # Create the file (from project root)
    touch .env.local
    ```
 
-   Open the file in your editor and add the following variables:
+   Add your OpenAI API key:
 
    ```env
    # OpenAI Configuration
    OPENAI_API_KEY=your_openai_api_key_here
-
-   # Vectorize.io Configuration
-   VECTORIZE_PIPELINE_ACCESS_TOKEN=your_vectorize_access_token_here
-   VECTORIZE_ORGANIZATION_ID=your_vectorize_organization_id_here
-   VECTORIZE_PIPELINE_ID=your_vectorize_pipeline_id_here
+   
+   # App Configuration (for production)
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
    ```
-
-   **Important**: The `.env.local` file is automatically ignored by git, keeping your API keys secure.
 
 ## 🔑 Environment Variables Setup
 
@@ -66,48 +92,14 @@ Before setting up this project, you'll need:
 1. Visit [OpenAI Platform](https://platform.openai.com/api-keys)
 2. Sign in or create an account
 3. Click "Create new secret key"
-4. Give your key a name (e.g., "rag-next-app")
-5. Copy the generated key immediately (you won't see it again!)
+4. Give your key a name (e.g., "financial-analyst-ai")
+5. Copy the generated key immediately
 6. In your `.env.local` file, replace `your_openai_api_key_here` with your actual key:
    ```env
    OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxx
    ```
 
-### Vectorize.io Configuration
-
-1. Sign up at [Vectorize.io](https://vectorize.io)
-2. Create a new organization
-3. Navigate to your organization settings
-4. Create a new pipeline:
-   - Choose "Document Retrieval" as the pipeline type
-   - Configure your pipeline settings
-   - Save the pipeline
-5. Generate an access token:
-   - Go to "API Tokens" in your organization settings
-   - Create a new token with "Retrieval Access" permissions
-   - Copy the token
-6. From your Vectorize dashboard, copy these values to your `.env.local`:
-   ```env
-   VECTORIZE_PIPELINE_ACCESS_TOKEN=eyJhbGciOi... (your full token)
-   VECTORIZE_ORGANIZATION_ID=527d9a27-c34a-4d0a-8fde-... (your org ID)
-   VECTORIZE_PIPELINE_ID=aip0c318-344a-4721-a9e7-... (your pipeline ID)
-   ```
-
-### Verifying Your Setup
-
-After adding all environment variables, your `.env.local` file should look similar to this:
-
-```env
-# OpenAI Configuration
-OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxx
-
-# Vectorize.io Configuration
-VECTORIZE_PIPELINE_ACCESS_TOKEN=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
-VECTORIZE_ORGANIZATION_ID=527d9a27-c34a-4d0a-8fde-1129a57eb5b8
-VECTORIZE_PIPELINE_ID=aip0c318-344a-4721-a9e7-5526c96d9b49
-```
-
-**Note**: Never commit your `.env.local` file to version control!
+**Important**: The `.env.local` file is automatically ignored by git, keeping your API keys secure.
 
 ## 🚀 Getting Started
 
@@ -115,318 +107,205 @@ VECTORIZE_PIPELINE_ID=aip0c318-344a-4721-a9e7-5526c96d9b49
 
    ```bash
    pnpm dev
+   # or
+   npm run dev
    ```
 
 2. **Open your browser**
 
    Navigate to [http://localhost:3000](http://localhost:3000)
 
-3. **Test the application**
-   - Visit the main page to see the Next.js welcome screen
-   - Go to `/vectorize` to access the RAG chat interface
-   - Start asking questions about your vectorized documents
+3. **Access the Financial Analyst**
+   - Visit the homepage to see the landing page
+   - Go to `/financial` to access the main Financial Analyst dashboard
+   - Start analyzing stocks by searching for symbols (AAPL, MSFT, GOOGL, etc.)
 
 ## 🏗️ Application Architecture
 
-### Sequence Diagram
-
-The following sequence diagram illustrates the complete interaction flow for both RAG Chat and Agent Chat functionalities:
-
-![Sequence Diagram](./sequence_diagram.png)
-
-*This diagram shows the step-by-step interactions between users, frontend components, API endpoints, services, and external APIs for both RAG and Agent chat flows.*
-
-### Architecture Overview
+### Core Components
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              FRONTEND (Next.js)                            │
+│                           FINANCIAL ANALYST APP                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐         │
-│  │   / (Home)      │    │  /vectorize     │    │    /agent       │         │
+│  │   / (Home)      │    │  /financial     │    │   /vectorize    │         │
 │  │   page.tsx      │    │   page.tsx      │    │   page.tsx      │         │
 │  └─────────────────┘    └─────────────────┘    └─────────────────┘         │
-│                          │                     │                           │
-│                          ▼                     ▼                           │
+│                          │                                                 │
+│                          ▼                                                 │
+│                    ┌─────────────────┐                                     │
+│                    │financial-analyst│                                     │
+│                    │     .tsx        │                                     │
+│                    │ (Main Dashboard)│                                     │
+│                    └─────────────────┘                                     │
+│                          │                                                 │
 │                    ┌─────────────────┐    ┌─────────────────┐               │
-│                    │   chat.tsx      │    │ agent-chat.tsx  │               │
-│                    │ (RAG Chat UI)   │    │ (Agent Chat UI) │               │
+│                    │   new-chart     │    │sources-display  │               │
+│                    │     .tsx        │    │     .tsx        │               │
+│                    │(Interactive     │    │(News Display)   │               │
+│                    │    Charts)      │    │                 │               │
 │                    └─────────────────┘    └─────────────────┘               │
-│                          │                     │                           │
-│                          │                     │                           │
-│                    ┌─────────────────┐          │                           │
-│                    │sources-display  │          │                           │
-│                    │     .tsx        │          │                           │
-│                    └─────────────────┘          │                           │
 └─────────────────────────────────────────────────────────────────────────────┘
                              │                     │
                              ▼                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              API LAYER                                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│          ┌─────────────────┐                  ┌─────────────────┐           │
-│          │  /api/chat      │                  │  /api/agent     │           │
-│          │   route.ts      │                  │   route.ts      │           │
-│          │ (RAG Endpoint)  │                  │(Agent Endpoint) │           │
-│          └─────────────────┘                  └─────────────────┘           │
-│                    │                                   │                    │
-│                    │                                   │                    │
-│                    ▼                                   ▼                    │
-│          ┌─────────────────┐                  ┌─────────────────┐           │
-│          │ generateText()  │                  │ streamText()    │           │
-│          │ (Single Call)   │                  │ (Multi-Step)    │           │
-│          └─────────────────┘                  └─────────────────┘           │
-│                                                         │                    │
-│                                               ┌─────────┴─────────┐         │
-│                                               │     AGENT TOOLS    │         │
-│                                               ├───────────────────┤         │
-│                                               │ • getLocation()   │         │
-│                                               │ • getWeather()    │         │
-│                                               │ • searchDocuments │         │
-│                                               └─────────────────────┘        │
+│    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐           │
+│    │/api/financial-  │  │/api/news-       │  │/api/market-     │           │
+│    │   agent         │  │  sentiment      │  │   data          │           │
+│    │  route.ts       │  │  route.ts       │  │  route.ts       │           │
+│    │(AI Analysis)    │  │(News Analysis)  │  │(Market Data)    │           │
+│    └─────────────────┘  └─────────────────┘  └─────────────────┘           │
+│            │                     │                     │                    │
+│            ▼                     ▼                     ▼                    │
+│    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐           │
+│    │ OpenAI GPT-4o   │  │ Sentiment AI    │  │ Financial APIs  │           │
+│    │ • Stock Analysis│  │ • News Parsing  │  │ • Real-time Data│           │
+│    │ • Technical     │  │ • Article       │  │ • Market Indices│           │
+│    │   Indicators    │  │   Enhancement   │  │ • Stock Prices  │           │
+│    │ • Risk Analysis │  │ • Source        │  │ • Volume Data   │           │
+│    └─────────────────┘  │   Credibility   │  └─────────────────┘           │
+│                         └─────────────────┘                                │
 └─────────────────────────────────────────────────────────────────────────────┘
-                             │                           │
-                             ▼                           ▼
+                             │                     │
+                             ▼                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           SERVICE LAYER                                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                    ┌─────────────────┐                                     │
-│                    │ RetrievalService│ ◄──────────────────────────────────┐ │
-│                    │ (/lib/retrieval)│                                   │ │
-│                    └─────────────────┘                                   │ │
-│                             │                                           │ │
-│                             ▼                                           │ │
-│                    ┌─────────────────┐                                   │ │
-│                    │ VectorizeService│                                   │ │
-│                    │ (/lib/vectorize)│                                   │ │
-│                    └─────────────────┘                                   │ │
-│                                                                          │ │
-│         ┌─────────────────┐    ┌─────────────────┐                       │ │
-│         │ /lib/utils.ts   │    │ /lib/consts.ts  │                       │ │
-│         │ (Utilities)     │    │ (Constants)     │                       │ │
-│         └─────────────────┘    └─────────────────┘                       │ │
+│    ┌─────────────────┐                    ┌─────────────────┐               │
+│    │FinancialData    │                    │ RetrievalService│               │
+│    │   Service       │                    │ (/lib/retrieval)│               │
+│    │(/lib/financial- │                    └─────────────────┘               │
+│    │     data)       │                                                     │
+│    │ • Market Data   │                                                     │
+│    │ • Technical     │                                                     │
+│    │   Analysis      │                                                     │
+│    │ • Risk Metrics  │                                                     │
+│    └─────────────────┘                                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
-                             │                                           │
-                             ▼                                           │
-┌─────────────────────────────────────────────────────────────────────────────┐ │
-│                          EXTERNAL APIs                                 │ │
-├─────────────────────────────────────────────────────────────────────────────┤ │
-│    ┌─────────────────┐              ┌─────────────────┐                 │ │
-│    │   OpenAI API    │              │  Vectorize.io   │ ◄───────────────┘ │
-│    │                 │              │                 │                   │
-│    │ • GPT-4o        │              │ • Document      │                   │
-│    │ • GPT-4o-mini   │              │   Retrieval     │                   │
-│    │ • Text          │              │ • Vector Search │                   │
-│    │   Generation    │              │ • Embeddings    │                   │
-│    └─────────────────┘              └─────────────────┘                   │
-│             ▲                                 ▲                           │
-│             │                                 │                           │
-│    ┌─────────────────┐              ┌─────────────────┐                   │
-│    │ OPENAI_API_KEY  │              │ VECTORIZE_*     │                   │
-│    │                 │              │ ENV VARIABLES   │                   │
-│    └─────────────────┘              └─────────────────┘                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-
- DATA FLOW:
- ┌─────────────────────────────────────────────────────────────────────────────┐
- │ RAG CHAT FLOW:                                                             │
- │ User Input → /api/chat → RetrievalService → VectorizeService → Documents    │
- │           ↓                                                                │
- │ OpenAI API ← Context + Messages ← Formatted Documents ← Vectorize.io       │
- │           ↓                                                                │
- │ Response + Sources → Chat UI                                               │
- │                                                                            │
- │ AGENT FLOW:                                                                │
- │ User Input → /api/agent → AI decides tools → Multi-step execution          │
- │           ↓                                                                │
- │ Tools: getLocation() + getWeather() + searchDocuments()                    │
- │           ↓                                                                │
- │ Streaming Response → Agent Chat UI                                         │
- └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 📁 Project Structure
+## 📈 Key Features Breakdown
 
+### Interactive Charts (`/components/new-chart.tsx`)
+- **18 Time Periods**: 5M, 15M, 30M, 1H, 4H, 1D, 3D, 5D, 1W, 2W, 1M, 3M, 6M, YTD, 1Y, 2Y, 5Y, MAX
+- **Chart Types**: Candlestick, Line, Area, Volume
+- **Technical Indicators**: RSI, MACD, Bollinger Bands
+- **Real-time Updates**: Live price movements and volume
+
+### AI Financial Agent (`/api/financial-agent/route.ts`)
+- **Multi-step Analysis**: Comprehensive stock evaluation
+- **Tool Integration**: Market data, technical analysis, risk assessment
+- **Streaming Responses**: Real-time AI analysis delivery
+- **News Integration**: Automatic news sentiment analysis
+
+### News Sentiment Engine (`/api/news-sentiment/route.ts`)
+- **Real-time Articles**: Live market news from major sources
+- **Sentiment Scoring**: AI-powered positive/negative/neutral classification
+- **Enhanced Summaries**: Newsletter-style article breakdowns
+- **Market Impact**: Analysis of how news affects stock performance
+
+### Market Data Service (`/lib/financial-data.ts`)
+- **Real-time Prices**: Current stock prices and market data
+- **Technical Indicators**: RSI, MACD, moving averages
+- **Risk Metrics**: Beta, volatility, VaR calculations
+- **Multi-symbol Support**: Track multiple stocks simultaneously
+
+## 🎯 Usage Examples
+
+### Basic Stock Analysis
+```typescript
+// Search for a stock symbol
+// The AI will provide comprehensive analysis including:
+// - Current price and volume
+// - Technical indicators (RSI, MACD)
+// - Recent news sentiment
+// - Buy/Hold/Sell recommendation
 ```
-rag-next-typescript/
-├── app/
-│   ├── agent/             # AI Agent interface
-│   │   └── page.tsx       # Agent page (server-rendered)
-│   ├── api/
-│   │   ├── agent/         # Agent API with multi-step tools
-│   │   │   └── route.ts   # Streaming agent endpoint
-│   │   └── chat/          # Traditional RAG chat API
-│   │       └── route.ts   # Single-turn RAG endpoint
-│   ├── vectorize/         # RAG chat interface
-│   │   └── page.tsx       # Vectorize chat page
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx          # Home page
-├── components/
-│   ├── agent-chat.tsx    # Agent chat component (client-side)
-│   ├── chat.tsx          # RAG chat component
-│   └── sources-display.tsx # Document sources display
-├── lib/
-│   ├── consts.ts         # Constants and loading messages
-│   ├── retrieval.ts      # Document retrieval service
-│   ├── utils.ts          # Utility functions
-│   └── vectorize.ts      # Vectorize.io API integration
-├── types/
-│   ├── chat.ts           # Chat-related types
-│   └── vectorize.ts      # Vectorize API types
-└── .env.local           # Environment variables
+
+### Technical Analysis
+```typescript
+// Get detailed technical analysis
+// - RSI levels (overbought/oversold)
+// - MACD signals (bullish/bearish)
+// - Moving average trends
+// - Support and resistance levels
 ```
 
-## 🔄 How It Works
+### News Sentiment
+```typescript
+// Real-time news analysis
+// - Latest market news
+// - Sentiment scoring
+// - Market impact assessment
+// - Article summaries
+```
 
-1. **User Input**: User types a question in the chat interface
-2. **Document Retrieval**: The system queries Vectorize.io to find relevant documents
-3. **Context Formation**: Retrieved documents are formatted as context
-4. **AI Generation**: OpenAI GPT-4o-mini generates a response using the context
-5. **Response Display**: The answer is shown with source documents for transparency
+## 🛡️ Security & Best Practices
 
-## 🎯 Usage
-
-### Chat Interface
-
-- Navigate to `/vectorize` for the main chat interface
-- Type questions related to your vectorized documents
-- View source documents that informed each AI response
-- Enjoy real-time loading animations and smooth interactions
-
-### Adding Documents
-
-To add documents to your vector database, you'll need to use the Vectorize.io platform or API to upload and process your documents before they can be retrieved by this application.
-
-## 🛠️ Available Scripts
-
-- `pnpm dev` - Start development server with Turbopack
-- `pnpm build` - Build the application for production
-- `pnpm start` - Start the production server
-- `pnpm lint` - Run ESLint
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-1. **Missing Environment Variables**
-
-   - Ensure all required environment variables are set in `.env.local`
-   - Check that your API keys are valid and have proper permissions
-
-2. **Vectorize Connection Issues**
-
-   - Verify your Vectorize.io credentials
-   - Ensure your pipeline is properly configured and has documents
-
-3. **OpenAI API Errors**
-   - Check your OpenAI API key validity
-   - Ensure you have sufficient credits/quota
-
-### Error Messages
-
-- `Failed to retrieve documents from Vectorize` - Check Vectorize.io configuration
-- `Failed to process chat` - Usually indicates OpenAI API issues
-
-## 📖 Learn More
-
-### Next.js Resources
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Learn Next.js](https://nextjs.org/learn)
-
-### AI & RAG Resources
-
-- [OpenAI API Documentation](https://platform.openai.com/docs)
-- [Vectorize.io Documentation](https://vectorize.io/docs)
-- [AI SDK Documentation](https://sdk.vercel.ai)
+- **Environment Variables**: API keys stored securely in `.env.local`
+- **TypeScript**: Full type safety throughout the application
+- **Error Handling**: Comprehensive error boundaries and fallbacks
+- **Rate Limiting**: Intelligent API call management
+- **Data Validation**: Zod schemas for API validation
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
+### Vercel Deployment (Recommended)
 
-1. Push your code to a Git repository
-2. Connect your repository to [Vercel](https://vercel.com)
-3. Add your environment variables in the Vercel dashboard
-4. Deploy automatically on every push
+1. **Push to GitHub**
+   ```bash
+   git add .
+   git commit -m "Initial deployment"
+   git push origin main
+   ```
+
+2. **Deploy to Vercel**
+   - Connect your GitHub repository to Vercel
+   - Add your `OPENAI_API_KEY` to Vercel environment variables
+   - Deploy automatically on push
+
+3. **Environment Variables in Vercel**
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+## 📊 API Endpoints
+
+- **GET `/api/market-data`** - Real-time market data
+- **POST `/api/financial-agent`** - AI-powered financial analysis
+- **GET `/api/news-sentiment?symbol=AAPL`** - News sentiment analysis
+- **POST `/api/chat`** - General AI chat interface
+
+## 🎨 Customization
+
+### Adding New Stocks
+Modify `/lib/consts.ts` to add new stock symbols to quick actions.
+
+### Styling
+The app uses Tailwind CSS with a professional dark theme. Customize colors in `/app/globals.css`.
+
+### AI Prompts
+Modify the system prompts in `/api/financial-agent/route.ts` to adjust AI behavior.
+
+## 📝 License
+
+This project is licensed under the MIT License.
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-# Financial Analysis Agent with WhatsApp Integration
+## 📞 Support
 
-A comprehensive financial analysis platform powered by MCP (Model Context Protocol) with WhatsApp bot integration for instant financial insights.
-
-## 🚀 **Quick WhatsApp Bot Setup**
-
-Your WhatsApp financial bot is ready to deploy! Choose your setup method:
-
-### **Option 1: Interactive Setup (Recommended)**
-```bash
-npm run setup:whatsapp
-```
-
-### **Option 2: Manual Setup**
-```bash
-# 1. Copy environment template
-cp .env.local.example .env.local
-
-# 2. Edit .env.local with your WhatsApp credentials
-# 3. Test locally
-npm run dev
-npm run verify:deployment
-
-# 4. Deploy to production
-npx vercel --prod
-```
-
-## 📱 **WhatsApp Bot Features**
-
-- **📊 Stock Analysis**: `analyze AAPL`, `TSLA analysis`
-- **📈 Market Data**: `market summary`, `indices`  
-- **💬 Financial Chat**: `should I invest in tech stocks?`
-- **🤖 AI Powered**: Real-time financial insights via WhatsApp
-
-## 🔧 **Available Endpoints**
-
-| Endpoint | Description | Best For |
-|----------|-------------|----------|
-| `/api/webhook` | Direct financial analysis | Production (fastest) |
-| `/api/whatsapp` | MCP integration | Full features |
-| `/api/whatsapp-mcp` | Pure MCP | Development |
-
-## 🧪 **Testing Commands**
-
-```bash
-npm run setup:whatsapp      # Interactive setup
-npm run verify:deployment   # Test all systems locally
-npm run verify:prod         # Test production deployment
-npm run test:mcp           # Test MCP financial tools
-npm run test:whatsapp      # Test WhatsApp webhooks
-npm run test:all           # Run all tests
-```
-
-## 📚 **Documentation**
-
-- **[WhatsApp Setup Guide](docs/whatsapp-setup.md)** - Complete setup instructions
-- **[Deployment Guide](DEPLOYMENT-GUIDE.md)** - Quick deployment checklist
-- **[Environment Template](.env.local.example)** - Configuration reference
-
-## 🎯 **What's Included**
-
-✅ **3 WhatsApp webhook implementations**  
-✅ **Complete MCP financial server**  
-✅ **Vercel deployment configuration**  
-✅ **Comprehensive test suites**  
-✅ **Interactive setup scripts**  
-✅ **Security & rate limiting**  
-✅ **Error handling & logging**  
+For support, please create an issue in the GitHub repository or contact the development team.
 
 ---
 
-## 💡 **Financial Analysis Features**
+**Disclaimer**: This application is for educational and informational purposes only. It should not be considered as financial advice. Always consult with a qualified financial advisor before making investment decisions.
