@@ -47,6 +47,13 @@ function extractSymbolFromMessages(messages: Message[]): string | null {
   return null;
 }
 
+// Check if the request is for news analysis
+function isNewsRequest(message: string): boolean {
+  const newsKeywords = ['news', 'sentiment', 'articles', 'headlines', 'market news', 'recent news'];
+  const lowerMessage = message.toLowerCase();
+  return newsKeywords.some(keyword => lowerMessage.includes(keyword));
+}
+
 export async function POST(req: Request) {
   const { messages, symbol, marketData }: { 
     messages: Message[]; 
@@ -56,105 +63,64 @@ export async function POST(req: Request) {
   
   // Extract symbol from the request or messages
   const requestedSymbol = symbol || extractSymbolFromMessages(messages) || 'AAPL';
+  const lastMessage = messages[messages.length - 1]?.content || '';
+  
   console.log(`Financial Agent analyzing symbol: ${requestedSymbol}`);
 
+  // Handle news requests with streaming response containing JSON data
+  if (isNewsRequest(lastMessage)) {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/news-sentiment?symbol=${requestedSymbol}`);
+      
+      if (response.ok) {
+        const newsData = await response.json();
+        
+        // Create enhanced articles JSON 
+        const articlesJson = JSON.stringify({
+          type: "ENHANCED_NEWS_ARTICLES",
+          symbol: requestedSymbol.toUpperCase(),
+          sentimentScore: newsData.sentimentScore,
+          overallSentiment: newsData.overallSentiment,
+          articles: newsData.articles,
+          timestamp: new Date().toISOString()
+        });
+
+        // Return streaming response with JSON embedded in text
+        const result = streamText({
+          model: openai("gpt-4o"),
+          prompt: `Return exactly this JSON data without any modifications: ${articlesJson}`,
+        });
+
+        return result.toDataStreamResponse();
+      }
+    } catch (error) {
+      console.error('Error fetching news data:', error);
+    }
+  }
+
+  // For non-news requests, use the regular streaming response
   const result = streamText({
     model: openai("gpt-4o"),
     maxSteps: 10,
-    system: `You are a professional financial analyst AI with access to real-time market data and technical analysis tools.
+    system: `You are a professional financial analyst AI.
 
-🎯 CURRENT ANALYSIS TARGET: ${requestedSymbol}
-${marketData ? `📊 REAL MARKET DATA PROVIDED: Price: $${marketData.price}, Volume: ${marketData.volume.toLocaleString()}, Change: ${marketData.changePercent}%` : ''}
+TARGET SYMBOL: ${requestedSymbol}
+${marketData ? `CURRENT DATA: Price $${marketData.price}, Volume ${marketData.volume.toLocaleString()}, Change ${marketData.changePercent}%` : ''}
 
-🔧 ENHANCED ANALYSIS REQUIREMENTS FOR ${requestedSymbol}:
-1. ALWAYS provide comprehensive analysis specific to ${requestedSymbol}
-2. Include real-time market context and sector analysis
-3. ALWAYS call getTechnicalAnalysis("${requestedSymbol}") for indicators
-4. ALWAYS call getStockData("${requestedSymbol}") for current data  
-5. Provide actionable insights with specific price targets
-6. Include risk assessment and portfolio recommendations
-7. Compare to sector benchmarks and market trends
-
-🎯 CORE MISSION: Provide structured, professional financial analysis that matches institutional-grade research reports.
-
-📊 ENHANCED RESPONSE STRUCTURE (MANDATORY):
-
-## ${requestedSymbol} Professional Analysis
-
-**📈 Current Market Position**
-- Current Price: $XXX.XX (${marketData ? marketData.changePercent.toFixed(2) : 'X.XX'}% today)
-- Trading Volume: ${marketData ? marketData.volume.toLocaleString() : 'X,XXX,XXX'} shares
-- Market Capitalization: $XXX.XXB
-- 52-Week Performance Range
-- Pre/After Market Activity
-
-**🔍 Technical Indicators & Signals**
-- RSI (14): XX.X → Momentum interpretation
-- MACD: X.XXX → Trend direction signal  
-- Moving Averages: SMA20/50/200 analysis
-- Bollinger Bands: Volatility assessment
-- Support/Resistance Levels: $XXX / $XXX
-- Volume Analysis: Institutional vs Retail
-
-**💡 Professional Assessment**
-- Market Sentiment: Bullish/Bearish/Neutral with reasoning
-- Sector Performance: Relative strength analysis
-- Catalyst Events: Upcoming earnings, product launches, etc.
-- Risk Factors: Company-specific and market-wide
-- Opportunity Analysis: Entry/exit points
-
-**📋 Investment Recommendations**
-- **Primary Recommendation:** BUY | HOLD | SELL
-- **Price Target:** $XXX (X% potential movement)
-- **Time Horizon:** Short-term (1-3 months) | Long-term (6-12 months)
-- **Risk Rating:** Low | Medium | High
-- **Position Sizing:** Suggested allocation %
-
-**🎯 Action Items**
-- Specific entry/exit strategies
-- Stop-loss recommendations  
-- Portfolio integration suggestions
-- Monitoring key metrics
-
----
-*Professional analysis for educational purposes. Consult licensed financial advisors for investment decisions.*
-
-🔧 TOOL USAGE REQUIREMENTS:
-1. ALWAYS call appropriate tools based on request type
-2. For technical analysis: Use getTechnicalAnalysis() tool
-3. For stock data: Use getStockData() tool
-4. For market overview: Use getMarketData() tool
-5. Include the complete JSON from tool calls at the end
-
-📈 VISUAL ENHANCEMENT:
-- When technical indicators are requested, ensure JSON output includes:
-  - RSI values for chart generation
-  - MACD data (value, signal, histogram)
-  - Moving averages (SMA20, SMA50, SMA200)
-  - Bollinger Bands (upper, middle, lower)
-  - Volume data
-  - Recommendation (BUY/HOLD/SELL)
-
-🎨 FORMATTING STANDARDS:
-- Use clear headings with ##
-- Bold important metrics with **text**
-- Use bullet points with - for lists
-- Include professional disclaimers
-- Maintain institutional tone throughout
-
-🚨 CRITICAL: 
-- NEVER include JSON code blocks, raw JSON, or technical data structures in responses
-- Keep responses clean and user-friendly 
-- All technical data should be embedded naturally in the analysis text
-- Focus on actionable insights, not raw data dumps
-
-📝 RESPONSE GUIDELINES:
-- Use clear, professional language
+INSTRUCTIONS:
+- Provide comprehensive financial analysis for ${requestedSymbol}
+- Use professional language and actionable insights
 - Include specific price targets and recommendations
-- Explain technical indicators in plain English
-- Provide actionable investment insights
-- Always specify which company/symbol you're analyzing
-- Include risk disclaimers`,
+- Call appropriate tools based on the request type
+- Focus on technical analysis, risk assessment, and market trends
+
+For technical analysis: Use getTechnicalAnalysis tool
+For stock data: Use getStockData tool  
+For market overview: Use getMarketData tool
+For comprehensive analysis: Use performComprehensiveAnalysis tool
+
+Format responses with clear headings and bullet points.
+Include professional disclaimers about educational use.`,
     messages,
     tools: {
       getMarketData: {
@@ -175,26 +141,6 @@ ${marketData ? `📊 REAL MARKET DATA PROVIDED: Price: $${marketData.price}, Vol
           return JSON.stringify(stockData, null, 2);
         },
       },
-      getMultipleStocks: {
-        description: "Get data for multiple stock symbols at once",
-        parameters: z.object({
-          symbols: z.array(z.string()).describe("Array of stock symbols"),
-        }),
-        execute: async ({ symbols }) => {
-          const stocksData = await financialDataService.getMultipleStocks(symbols);
-          return JSON.stringify(stocksData, null, 2);
-        },
-      },
-      analyzeRisk: {
-        description: "Perform risk analysis for a specific stock including Beta, VaR, and volatility",
-        parameters: z.object({
-          symbol: z.string().describe("Stock symbol to analyze"),
-        }),
-        execute: async ({ symbol }) => {
-          const riskAnalysis = await financialDataService.getRiskAnalysis(symbol);
-          return JSON.stringify(riskAnalysis, null, 2);
-        },
-      },
       getTechnicalAnalysis: {
         description: "Get technical analysis including RSI, MACD, moving averages, and trading signals",
         parameters: z.object({
@@ -204,7 +150,6 @@ ${marketData ? `📊 REAL MARKET DATA PROVIDED: Price: $${marketData.price}, Vol
           console.log(`Getting technical analysis for ${symbol}`);
           const technicalAnalysis = await financialDataService.getTechnicalAnalysis(symbol);
           
-          // Ensure data consistency and realistic values
           const validatedAnalysis = {
             ...technicalAnalysis,
             symbol: symbol.toUpperCase(),
@@ -215,29 +160,14 @@ ${marketData ? `📊 REAL MARKET DATA PROVIDED: Price: $${marketData.price}, Vol
           return JSON.stringify(validatedAnalysis, null, 2);
         },
       },
-      getNewsAnalysis: {
-        description: "Get news sentiment analysis and recent articles for a stock",
+      analyzeRisk: {
+        description: "Perform risk analysis for a specific stock including Beta, VaR, and volatility",
         parameters: z.object({
-          symbol: z.string().describe("Stock symbol for news analysis"),
+          symbol: z.string().describe("Stock symbol to analyze"),
         }),
         execute: async ({ symbol }) => {
-          const newsAnalysis = await financialDataService.getNewsAnalysis(symbol);
-          return JSON.stringify(newsAnalysis, null, 2);
-        },
-      },
-      searchFinancialDocuments: {
-        description: "Search through financial documents, SEC filings, and analyst reports",
-        parameters: z.object({
-          query: z.string().describe("Search query for financial documents"),
-        }),
-        execute: async ({ query }) => {
-          // Use existing vectorize service for document search
-          const documents = await retrievalService.searchDocuments(query);
-          
-          // Also search for financial-specific content
-          const financialDocs = await financialDataService.searchFinancialDocuments(query);
-          
-          return `Document Search Results:\n${documents}\n\nFinancial Analysis:\n${financialDocs}`;
+          const riskAnalysis = await financialDataService.getRiskAnalysis(symbol);
+          return JSON.stringify(riskAnalysis, null, 2);
         },
       },
       performComprehensiveAnalysis: {
@@ -252,7 +182,6 @@ ${marketData ? `📊 REAL MARKET DATA PROVIDED: Price: $${marketData.price}, Vol
           const stockData = await financialDataService.getStockData(symbol);
           const riskAnalysis = await financialDataService.getRiskAnalysis(symbol);
           const technicalAnalysis = await financialDataService.getTechnicalAnalysis(symbol);
-          const newsAnalysis = await financialDataService.getNewsAnalysis(symbol);
           
           // Get comparison data if requested
           let comparisonData: any[] = [];
@@ -264,7 +193,6 @@ ${marketData ? `📊 REAL MARKET DATA PROVIDED: Price: $${marketData.price}, Vol
             primaryStock: stockData,
             riskMetrics: riskAnalysis,
             technicalIndicators: technicalAnalysis,
-            sentimentAnalysis: newsAnalysis,
             comparisons: comparisonData,
             analysisType,
             timestamp: new Date().toISOString(),

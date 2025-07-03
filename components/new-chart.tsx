@@ -429,7 +429,7 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
         ) : chartData.length > 0 && chartMetrics ? (
           <div className="w-full h-full relative">
             {/* Enhanced SVG Chart */}
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
               {/* Gradients for area fill */}
               <defs>
                 <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -443,14 +443,14 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
               </defs>
               
               {/* Price grid lines */}
-              {Array.from({ length: 5 }).map((_, i) => (
-                <line
+          {Array.from({ length: 5 }).map((_, i) => (
+            <line
                   key={`price-grid-${i}`}
                   x1="0" y1={20 + i * 15} x2="100" y2={20 + i * 15}
-                  stroke="rgba(148, 163, 184, 0.1)" strokeWidth="0.1"
-                />
-              ))}
-              
+              stroke="rgba(148, 163, 184, 0.1)" strokeWidth="0.1"
+            />
+          ))}
+          
               {/* Time grid lines */}
               {Array.from({ length: 8 }).map((_, i) => (
                 <line
@@ -468,12 +468,12 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
               />
               
               {/* Price line */}
-              <path
+          <path
                 d={createChartPath}
-                fill="none"
-                stroke={chartColor}
-                strokeWidth="0.5"
-                strokeLinecap="round"
+            fill="none"
+            stroke={chartColor}
+            strokeWidth="0.5"
+            strokeLinecap="round"
                 strokeLinejoin="round"
                 className="drop-shadow-sm"
               />
@@ -487,7 +487,7 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
                   <circle
                     key={`point-${index}`}
                     cx={x} cy={y} r="0.4"
-                    fill={chartColor}
+            fill={chartColor}
                     opacity="0.8"
                     className="hover:r-1 transition-all cursor-pointer"
                   >
@@ -529,7 +529,7 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
                   strokeDasharray="1,1"
                 />
               ))}
-            </svg>
+        </svg>
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -598,12 +598,12 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
             <div className="text-xs text-slate-400 mb-2 font-medium">Long Term</div>
             <div className="flex flex-wrap gap-1">
               {['1M', '3M', '6M', 'YTD', '1Y', '2Y', '5Y', 'MAX'].map((period) => (
-                <button
-                  key={period}
-                  onClick={() => handlePeriodClick(period)}
+            <button
+              key={period}
+              onClick={() => handlePeriodClick(period)}
                   disabled={isLoading}
                   className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
-                    selectedPeriod === period 
+                selectedPeriod === period 
                       ? 'bg-purple-500 text-white shadow-md transform scale-105' 
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
                   }`}
@@ -646,7 +646,7 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
             <span className="text-slate-400">
               Vol: {chartData[chartData.length - 1]?.volume?.toLocaleString() || 'N/A'}
             </span>
-          </div>
+        </div>
         </div>
       </div>
     </div>

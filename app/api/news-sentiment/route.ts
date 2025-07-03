@@ -564,7 +564,7 @@ async function fetchRealNews(symbol: string): Promise<NewsArticle[]> {
         
         realArticles.push({
           title: article.title,
-          summary: article.description || enhanced.engaging_summary,
+          summary: article.description || enhanced.enhanced.engaging_summary,
           url: article.url,
           source: article.source?.name || 'Financial News',
           publishedAt: article.publishedAt || new Date().toISOString(),

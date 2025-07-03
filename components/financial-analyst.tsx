@@ -1,3 +1,4 @@
+// Cache buster: 1751542987 - Dark theme instant loading
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -692,7 +693,7 @@ const StructuredMessage = ({ content, marketData, selectedSymbol }: {
     };
 
     const parsed = parseContent(content);
-    
+
     if (parsed.type === 'json' && parsed.data.indicators) {
       const { indicators, symbol, recommendation } = parsed.data;
       
@@ -880,10 +881,10 @@ const StructuredMessage = ({ content, marketData, selectedSymbol }: {
   } catch (error) {
     console.error('Error in StructuredMessage:', error);
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
         <div className="flex items-center space-x-2">
-          <AlertTriangle className="w-4 h-4 text-red-500" />
-          <div className="text-red-600 text-sm">Error displaying message content</div>
+          <AlertTriangle className="w-4 h-4 text-red-400" />
+          <div className="text-red-300 text-sm">Error displaying message content</div>
         </div>
       </div>
     );
@@ -944,30 +945,55 @@ const ProfessionalTradingChart = ({ symbol, data }: { symbol: string, data?: Mar
   );
 };
 
-// Newsletter-style News Article Component - Now uses pre-generated content for instant display
+// Newsletter-style News Article Component - Handles JSON from financial agent instantly
 const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: string }) => {
   const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const parseEnhancedNews = (text: string) => {
+    try {
+      // Check if content is JSON with enhanced news articles from financial agent
+      if (text.includes('ENHANCED_NEWS_ARTICLES') || (text.startsWith('{') && text.includes('"articles"'))) {
+        const parsedData = JSON.parse(text);
+        if (parsedData.type === 'ENHANCED_NEWS_ARTICLES' && parsedData.articles) {
+          console.log(`🚀 INSTANT JSON: ${parsedData.articles.length} enhanced articles from agent`);
+          return parsedData.articles;
+        }
+      }
+      return null;
+  } catch (error) {
+      console.error('Error parsing enhanced news JSON:', error);
+      return null;
+    }
+  };
+
   const isNewsContent = (text: string): boolean => {
     const newsIndicators = [
       'news sentiment', 'headlines', 'articles', 'recent news',
-      'market news', 'sentiment analysis', 'breaking'
+      'market news', 'sentiment analysis', 'breaking', 'ENHANCED_NEWS_ARTICLES'
     ];
     return newsIndicators.some(indicator => text.toLowerCase().includes(indicator));
   };
 
-  // INSTANT article fetching - NO DELAYS
+  // INSTANT processing - either from JSON or API fallback
   useEffect(() => {
-    if (!isNewsContent(content) || !symbol || articles.length > 0) {
-      return; // Skip if not news content, no symbol, or already have articles
+    if (articles.length > 0) return; // Already processed
+
+    // First: Try parsing enhanced news from content
+    const enhancedArticles = parseEnhancedNews(content);
+    if (enhancedArticles) {
+      setArticles(enhancedArticles.slice(0, 3));
+      return;
     }
+
+    // Fallback: Fetch if content looks like news but no JSON
+    if (!isNewsContent(content) || !symbol) return;
 
     const fetchArticlesInstantly = async () => {
       setLoading(true);
       
       try {
-        console.log(`⚡ INSTANT fetch for ${symbol}...`);
+        console.log(`⚡ FALLBACK fetch for ${symbol}...`);
         
         const response = await fetch(`/api/news-sentiment?symbol=${symbol}&instant=true`);
         if (!response.ok) {
@@ -977,11 +1003,11 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
         const newsData = await response.json();
         
         if (newsData.articles && newsData.articles.length > 0) {
-          console.log(`✅ INSTANT: ${newsData.articles.length} articles loaded`);
+          console.log(`✅ FALLBACK: ${newsData.articles.length} articles loaded`);
           setArticles(newsData.articles.slice(0, 3));
         }
         
-      } catch (error) {
+    } catch (error) {
         console.error('Error fetching articles:', error);
         setArticles([]);
       } finally {
@@ -989,9 +1015,8 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
       }
     };
 
-    // NO DEBOUNCING - INSTANT FETCH
     fetchArticlesInstantly();
-  }, [content, symbol]); // Removed hasProcessedArticles dependency
+  }, [content, symbol]);
 
   try {
     // INSTANT Loading state - NO DELAYS
@@ -1190,10 +1215,10 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
   } catch (error) {
     console.error('Error in NewsletterMessage:', error);
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
         <div className="flex items-center space-x-2">
-          <AlertTriangle className="w-4 h-4 text-red-500" />
-          <div className="text-red-600 text-sm">Error displaying news content</div>
+          <AlertTriangle className="w-4 h-4 text-red-400" />
+          <div className="text-red-300 text-sm">Error displaying news content</div>
         </div>
       </div>
     );
@@ -1242,9 +1267,9 @@ export default function FinancialAnalyst() {
         headers: {
           "Content-Type": "application/json",
         },
-      });
-
-      if (!response.ok) {
+        });
+        
+        if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -1255,7 +1280,7 @@ export default function FinancialAnalyst() {
       }
 
       setMarketData(data.stocks);
-      setLastUpdate(new Date());
+          setLastUpdate(new Date());
       
       // Update selected stock data
       const selectedStock = data.stocks.find((stock: MarketData) => 
@@ -1311,7 +1336,7 @@ export default function FinancialAnalyst() {
 
   // Auto-refresh functionality with dependency optimization
   useEffect(() => {
-    fetchMarketData();
+      fetchMarketData();
   }, []); // Only run once on mount
 
   // Separate effect for auto-refresh that doesn't depend on selectedSymbol
@@ -1320,11 +1345,11 @@ export default function FinancialAnalyst() {
     if (autoRefresh) {
       interval = setInterval(() => {
         console.log('🔄 Auto-refreshing market data...');
-        fetchMarketData();
+          fetchMarketData();
       }, 60000); // Refresh every 60 seconds (reduced frequency)
-    }
-    
-    return () => {
+        }
+      
+      return () => {
       if (interval) clearInterval(interval);
     };
   }, [autoRefresh]); // Only depend on autoRefresh
@@ -1497,25 +1522,25 @@ export default function FinancialAnalyst() {
   const MarketCard = ({ data }: { data: MarketData }) => {
     const isPositive = data.changePercent >= 0;
     const isSelected = data.symbol === selectedSymbol;
-    
-    return (
-      <div 
+      
+      return (
+        <div 
         onClick={() => handleSymbolSelect(data.symbol)}
         className={`bg-slate-800 rounded-lg p-4 border transition-all cursor-pointer hover:border-[#00D4AA] ${
           isSelected ? 'border-[#00D4AA] bg-slate-700' : 'border-slate-600'
         }`}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-2">
             <div className="text-white font-bold text-lg">{data.symbol}</div>
             {isSelected && <div className="w-2 h-2 bg-[#00D4AA] rounded-full animate-pulse"></div>}
-          </div>
+            </div>
           <div className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
             {isPositive ? '+' : ''}{data.changePercent.toFixed(2)}%
+            </div>
           </div>
-        </div>
         
-        <div className="space-y-1">
+          <div className="space-y-1">
           <div className="text-xl font-bold text-white">${data.price.toFixed(2)}</div>
           <div className="text-sm text-slate-400">{data.name}</div>
           <div className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
@@ -1523,10 +1548,10 @@ export default function FinancialAnalyst() {
           </div>
           <div className="text-xs text-slate-500">
             Vol: {(data.volume / 1000000).toFixed(1)}M
+        </div>
           </div>
         </div>
-      </div>
-    );
+      );
   };
 
   const TopMoversWidget = () => {
@@ -1900,8 +1925,8 @@ export default function FinancialAnalyst() {
     if (!isInitialized && marketData && marketData.length > 0) {
       // Only update ONCE on initialization
       if (!selectedStock) {
-        setSelectedSymbol(marketData[0].symbol);
-      }
+      setSelectedSymbol(marketData[0].symbol);
+    }
       setIsInitialized(true);
     }
   }, [marketData, isInitialized]);
@@ -1981,7 +2006,7 @@ export default function FinancialAnalyst() {
                   </div>
                   <div className="flex items-center space-x-1">
                     <Clock className="w-3 h-3" />
-                    <span>{lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}</span>
+                  <span>{lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}</span>
                   </div>
                   <button
                     onClick={() => setAutoRefresh(!autoRefresh)}
@@ -1997,14 +2022,14 @@ export default function FinancialAnalyst() {
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Search stocks, crypto..."
-                      className="bg-[#0F172A] border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00D4AA] w-64"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search stocks, crypto..."
+                    className="bg-[#0F172A] border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00D4AA] w-64"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && searchQuery.trim()) {
                           handleSearchStock(searchQuery.trim());
