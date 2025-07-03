@@ -957,14 +957,18 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
     return newsIndicators.some(indicator => text.toLowerCase().includes(indicator));
   };
 
-  // Simplified article fetching without enhancement delay
+  // Optimized article fetching with proper caching
+  const [hasProcessedArticles, setHasProcessedArticles] = useState(false);
+  
   useEffect(() => {
-    const fetchArticles = async () => {
-      if (!isNewsContent(content) || !symbol) {
-        return;
-      }
+    // Prevent duplicate processing
+    if (hasProcessedArticles || !isNewsContent(content) || !symbol) {
+      return;
+    }
 
+    const fetchArticles = async () => {
       setLoading(true);
+      setHasProcessedArticles(true);
       
       try {
         console.log(`📰 Fetching pre-enhanced articles for ${symbol}...`);
@@ -989,9 +993,10 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
       }
     };
 
-    // Immediate fetch - no debouncing needed since articles come pre-enhanced
-    fetchArticles();
-  }, [content, symbol]);
+    // Debounced fetch to prevent multiple calls
+    const timeoutId = setTimeout(fetchArticles, 300);
+    return () => clearTimeout(timeoutId);
+  }, [content, symbol, hasProcessedArticles]);
 
   try {
     // Loading state - much faster now
@@ -1309,23 +1314,25 @@ export default function FinancialAnalyst() {
     return fallbackData.find(stock => stock.symbol === symbol) || fallbackData[0];
   };
 
-  // Auto-refresh functionality
+  // Auto-refresh functionality with dependency optimization
   useEffect(() => {
     fetchMarketData();
-    
-    // Set up auto-refresh interval
+  }, []); // Only run once on mount
+
+  // Separate effect for auto-refresh that doesn't depend on selectedSymbol
+  useEffect(() => {
     let interval: NodeJS.Timeout;
     if (autoRefresh) {
       interval = setInterval(() => {
         console.log('🔄 Auto-refreshing market data...');
         fetchMarketData();
-      }, 30000); // Refresh every 30 seconds
+      }, 60000); // Refresh every 60 seconds (reduced frequency)
     }
     
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [selectedSymbol, autoRefresh]);
+  }, [autoRefresh]); // Only depend on autoRefresh
 
   // Enhanced symbol selection with data update
   const handleSymbolSelect = async (symbol: string) => {
@@ -1891,13 +1898,25 @@ export default function FinancialAnalyst() {
   const selectedStock = marketData?.find(d => d?.symbol === selectedSymbol) || 
     (marketData && marketData.length > 0 ? marketData[0] : null);
   
-  // Update selected symbol when a stock is clicked
+  // Update selected symbol when a stock is clicked - STABILIZED
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   useEffect(() => {
-    if (marketData && marketData.length > 0 && !selectedStock) {
-      // If current selected symbol isn't found in data, default to first available
-      setSelectedSymbol(marketData[0].symbol);
+    if (!isInitialized && marketData && marketData.length > 0) {
+      // Only update ONCE on initialization
+      if (!selectedStock) {
+        setSelectedSymbol(marketData[0].symbol);
+      }
+      setIsInitialized(true);
     }
-  }, [marketData, selectedStock]);
+  }, [marketData, isInitialized]);
+
+  // Remove the problematic useEffect that was causing re-renders
+  // useEffect(() => {
+  //   if (marketData && marketData.length > 0 && !selectedStock) {
+  //     setSelectedSymbol(marketData[0].symbol);
+  //   }
+  // }, [marketData, selectedStock]);
 
   // Show loading state if data is still loading
   if (loading && marketData.length === 0) {
