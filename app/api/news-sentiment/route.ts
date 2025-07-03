@@ -797,7 +797,7 @@ function generateInstantRealTimeArticles(symbol: string): NewsArticle[] {
     const sentiment = typeof template.sentiment === 'string' ? template.sentiment : 
                      template.sentiment ? 'positive' : 'neutral';
     
-    const enhanced = generateInstantEnhancement(template.title, template.summary, { sentiment }, symbol);
+    const enhanced = generateInstantEnhancement(template.title, template.summary, { sentiment: sentiment as 'positive' | 'negative' | 'neutral', score: 0.5 }, symbol);
     
     return {
       title: template.title,
