@@ -9,6 +9,21 @@ interface NewsArticle {
   sentiment: 'positive' | 'negative' | 'neutral';
   sentimentScore: number;
   relevance: number;
+  enhanced?: {
+    title: string;
+    engaging_summary: string;
+    key_takeaways: string[];
+    market_impact: string;
+    investor_action: string;
+    fun_fact: string;
+    emoji_sentiment: string;
+  };
+  newsletter?: {
+    headline: string;
+    tldr: string;
+    why_it_matters: string;
+    bottom_line: string;
+  };
 }
 
 interface NewsSentimentResponse {
@@ -157,34 +172,20 @@ function generateNewsArticle(
   const summaryIndex = (index * 2 + templateIndex) % summaryOptions.length;
   const summary = summaryOptions[summaryIndex];
   
-  // Generate realistic URL with better variation
+  // Generate enhanced newsletter-style content directly
+  const enhancedContent = generateEnhancedContent(title, summary, sentiment, company, index);
+  
+  // Generate realistic URL with better variation  
   const source = NEWS_SOURCES[(index * 3 + templateIndex) % NEWS_SOURCES.length];
   const urlSlug = title.toLowerCase()
     .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .substring(0, 60); // Limit slug length
+    .substring(0, 60);
   
-  const baseUrls: { [key: string]: string } = {
-    'Reuters': 'https://www.reuters.com/business',
-    'Bloomberg': 'https://www.bloomberg.com/news/articles',
-    'MarketWatch': 'https://www.marketwatch.com/story',
-    'Yahoo Finance': 'https://finance.yahoo.com/news',
-    'CNBC': 'https://www.cnbc.com/2024/03',
-    'Financial Times': 'https://www.ft.com/content',
-    'Wall Street Journal': 'https://www.wsj.com/articles',
-    'Seeking Alpha': 'https://seekingalpha.com/article',
-    'The Motley Fool': 'https://www.fool.com/investing',
-    'Benzinga': 'https://www.benzinga.com/news',
-    'Barron\'s': 'https://www.barrons.com/articles',
-    'Forbes': 'https://www.forbes.com/sites',
-    'Zacks': 'https://www.zacks.com/stock/news',
-    'TheStreet': 'https://www.thestreet.com/investing'
-  };
-  
-  const baseUrl = baseUrls[source] || 'https://finance.yahoo.com/news';
+  // Use example.com for demo URLs to avoid 404 errors
   const uniqueId = Date.now() - (index * 3600000) + Math.floor(Math.random() * 1000);
-  const url = `${baseUrl}/${urlSlug}-${uniqueId}`;
+  const url = `https://example.com/news/${source.toLowerCase().replace(/[^a-z]/g, '-')}/${urlSlug}-${uniqueId}`;
   
   // Calculate sentiment score with variation
   const sentimentScores = {
@@ -205,7 +206,161 @@ function generateNewsArticle(
     publishedAt,
     sentiment,
     sentimentScore: sentimentScores[sentiment],
-    relevance: 0.85 + Math.random() * 0.15
+    relevance: 0.85 + Math.random() * 0.15,
+    // Add pre-generated enhanced content
+    enhanced: enhancedContent.enhanced,
+    newsletter: enhancedContent.newsletter
+  };
+}
+
+// Generate enhanced newsletter-style content without API calls
+function generateEnhancedContent(title: string, summary: string, sentiment: 'positive' | 'negative' | 'neutral', company: string, index: number) {
+  // Enhanced titles based on sentiment
+  const enhancedTitles = {
+    positive: [
+      `🚀 ${company} Crushes Expectations - Stock Soars!`,
+      `📈 ${company} Delivers Blockbuster Results`,
+      `🎯 ${company} Hits It Out of the Park This Quarter`,
+      `💎 ${company} Shows Why It's a Market Leader`,
+      `🔥 ${company} Stock on Fire After Stellar Performance`
+    ],
+    negative: [
+      `📉 ${company} Faces Headwinds - What Investors Need to Know`,
+      `⚠️ ${company} Navigates Challenging Waters`,
+      `🌊 ${company} Weathers Market Storm`,
+      `📊 ${company} Adjusts Strategy Amid Challenges`,
+      `🎯 ${company} Focuses on Recovery Plan`
+    ],
+    neutral: [
+      `📊 ${company} Maintains Steady Course`,
+      `⚖️ ${company} Delivers Mixed Results`,
+      `📈 ${company} Shows Consistent Performance`,
+      `🎯 ${company} Stays on Strategic Track`,
+      `📋 ${company} Reports In-Line Results`
+    ]
+  };
+
+  // Engaging summaries
+  const engagingSummaries = {
+    positive: [
+      `${company} just dropped some seriously impressive numbers that have Wall Street buzzing. The company's latest moves are paying off big time, and investors are taking notice.`,
+      `Talk about exceeding expectations! ${company} delivered results that had analysts scrambling to update their models. This is the kind of performance that gets traders excited.`,
+      `${company} is absolutely crushing it right now. Everything from revenue to innovation metrics is pointing in the right direction, making this a must-watch story.`,
+      `The numbers are in, and ${company} is clearly firing on all cylinders. Management's strategic vision is translating into real results that speak volumes.`,
+      `${company} continues to prove why it's considered a market leader. These results showcase exactly what happens when strategy meets execution.`
+    ],
+    negative: [
+      `${company} is facing some real challenges that can't be ignored. While the situation isn't ideal, the company's response strategy will be crucial for future performance.`,
+      `It's been a tough quarter for ${company}, but that doesn't mean it's game over. Market pressures are real, but so is the company's resilience.`,
+      `${company} is dealing with headwinds that many companies face in today's market. The key question is how quickly they can adapt and recover.`,
+      `Not the quarter ${company} was hoping for, but challenging times often separate the strong companies from the weak ones. Time will tell which camp they're in.`,
+      `${company} is navigating some choppy waters right now. While the current situation is concerning, their long-term strategy could still pay off.`
+    ],
+    neutral: [
+      `${company} delivered exactly what most analysts expected - no big surprises, but no major disappointments either. Sometimes steady performance is exactly what the market needs.`,
+      `${company} is playing it by the book this quarter. While not groundbreaking, their consistent approach continues to demonstrate operational stability.`,
+      `${company} shows that sometimes the best news is no news. Their steady performance in volatile markets speaks to solid fundamentals.`,
+      `${company} proves that consistent execution often beats flashy headlines. Their measured approach continues to deliver predictable results.`,
+      `${company} maintains its steady rhythm in an unpredictable market. While not exciting, this stability has its own value for investors.`
+    ]
+  };
+
+  // Key takeaways based on sentiment
+  const keyTakeaways = {
+    positive: [
+      `📱 Strong product demand exceeded forecasts`,
+      `💰 Revenue growth outpaced industry averages`,
+      `📈 Stock likely to benefit from positive momentum`,
+      `🎯 Management's strategy proving effective`,
+      `🚀 Market position strengthening significantly`
+    ],
+    negative: [
+      `⚠️ Quarterly results missed key expectations`,
+      `📉 Market pressures affecting performance`,
+      `🔧 Management implementing corrective measures`,
+      `📊 Industry headwinds creating challenges`,
+      `🎯 Recovery strategy being developed`
+    ],
+    neutral: [
+      `📊 Results aligned with analyst estimates`,
+      `⚖️ Mixed performance across business segments`,
+      `📈 Maintaining market position effectively`,
+      `🎯 Strategic initiatives progressing as planned`,
+      `📋 Guidance reaffirmed for upcoming periods`
+    ]
+  };
+
+  // Market impact assessments
+  const marketImpacts = {
+    positive: `This is the kind of performance that makes portfolios smile. Strong fundamentals combined with positive momentum could drive continued outperformance.`,
+    negative: `Short-term headwinds may create volatility, but experienced investors often see challenging periods as potential entry points for quality companies.`,
+    neutral: `Steady performance in uncertain times demonstrates resilience. While not exciting, consistency can be valuable in volatile markets.`
+  };
+
+  // Investor actions
+  const investorActions = {
+    positive: `Long-term holders should feel confident about their position. New investors might want to consider this momentum, but timing is always key.`,
+    negative: `Current holders should assess their risk tolerance. Patient investors may view this as a temporary setback for a fundamentally sound company.`,
+    neutral: `Maintain current positions and monitor upcoming catalysts. This steady performance suggests no immediate action required.`
+  };
+
+  // Newsletter-style headlines
+  const newsletterHeadlines = {
+    positive: [
+      `🎉 ${company} Serves Up a Delicious Earnings Beat`,
+      `🚀 ${company} Launches Into Profit Orbit`,
+      `💎 ${company} Proves Why It's a Crown Jewel`,
+      `🎯 ${company} Hits the Bulls-Eye This Quarter`,
+      `🔥 ${company} Sets the Market on Fire`
+    ],
+    negative: [
+      `🌊 ${company} Navigates Rough Seas`,
+      `⛈️ ${company} Weathers the Storm`,
+      `🎯 ${company} Recalibrates for Better Aim`,
+      `🔧 ${company} Fine-Tunes Its Engine`,
+      `📈 ${company} Plots Its Recovery Course`
+    ],
+    neutral: [
+      `⚖️ ${company} Keeps Things Balanced`,
+      `📊 ${company} Stays the Course`,
+      `🎯 ${company} Hits the Mark`,
+      `📈 ${company} Maintains Steady Progress`,
+      `🔄 ${company} Continues Consistent Execution`
+    ]
+  };
+
+  // TL;DR summaries
+  const tldrSummaries = {
+    positive: `${company} delivered impressive results that exceeded expectations across key metrics.`,
+    negative: `${company} faced challenges this quarter but is implementing strategies to address them.`,
+    neutral: `${company} reported steady results in line with expectations, demonstrating operational consistency.`
+  };
+
+  // Select content based on index for variety
+  const titleIndex = index % enhancedTitles[sentiment].length;
+  const summaryIndex = index % engagingSummaries[sentiment].length;
+  const headlineIndex = index % newsletterHeadlines[sentiment].length;
+
+  return {
+    enhanced: {
+      title: enhancedTitles[sentiment][titleIndex],
+      engaging_summary: engagingSummaries[sentiment][summaryIndex],
+      key_takeaways: keyTakeaways[sentiment].slice(0, 4), // Take first 4
+      market_impact: marketImpacts[sentiment],
+      investor_action: investorActions[sentiment],
+      fun_fact: `${company} is one of the most actively traded stocks, with millions of shares changing hands daily!`,
+      emoji_sentiment: sentiment === 'positive' ? '📈' : sentiment === 'negative' ? '📉' : '📊'
+    },
+    newsletter: {
+      headline: newsletterHeadlines[sentiment][headlineIndex],
+      tldr: tldrSummaries[sentiment],
+      why_it_matters: `${company} is a major market player, so its performance often influences broader market sentiment and sector trends.`,
+      bottom_line: sentiment === 'positive' ? 
+        `${company} continues to demonstrate strong execution and market leadership.` :
+        sentiment === 'negative' ?
+        `${company} faces near-term challenges but maintains long-term potential.` :
+        `${company} shows consistent performance and operational stability.`
+    }
   };
 }
 
