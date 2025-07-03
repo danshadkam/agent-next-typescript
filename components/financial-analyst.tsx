@@ -568,6 +568,34 @@ const StructuredMessage = ({ content, marketData, selectedSymbol }: {
   selectedSymbol?: string; 
 }) => {
   try {
+    // Check if this is news sentiment content
+    const isNewsContent = (text: string): boolean => {
+      const newsIndicators = [
+        'news sentiment',
+        'headlines',
+        'articles',
+        'recent news',
+        'market news',
+        'sentiment analysis',
+        'news digest',
+        'breaking news',
+        /\d+ recent articles/i,
+        /sentiment.*score/i
+      ];
+      
+      return newsIndicators.some(indicator => {
+        if (typeof indicator === 'string') {
+          return text.toLowerCase().includes(indicator);
+        }
+        return indicator.test(text);
+      });
+    };
+
+    // If it's news content, use the NewsletterMessage component
+    if (isNewsContent(content)) {
+      return <NewsletterMessage content={content} symbol={selectedSymbol} />;
+    }
+
     // Advanced parsing for both JSON and markdown content
     const parseContent = (text: string) => {
       // Try JSON parsing first
@@ -665,108 +693,6 @@ const StructuredMessage = ({ content, marketData, selectedSymbol }: {
 
     const parsed = parseContent(content);
     
-    // Enhanced text formatting with financial data highlighting
-    const formatTextContent = (text: string) => {
-      // Remove JSON blocks and code formatting that users shouldn't see
-      let cleanText = text
-        .replace(/```json[\s\S]*?```/gi, '') // Remove JSON code blocks
-        .replace(/```[\s\S]*?```/gi, '') // Remove any code blocks
-        .replace(/Technical Analysis JSON:[\s\S]*$/gi, '') // Remove JSON sections
-        .replace(/\{[\s\S]*?\}/gi, '') // Remove any remaining JSON objects
-        .replace(/JSON[\s\S]*?:/gi, '') // Remove JSON headers
-        .replace(/Data Structure[\s\S]*?:/gi, '') // Remove data structure sections
-        .trim();
-
-      // Enhanced news article detection and formatting
-      const newsArticleRegex = /([^.!?]*(?:Reports?|Announces?|Stock|Shares|Earnings|Revenue|Headlines?|News|Articles?)[^.!?]*[.!?])/gi;
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      const sourceRegex = /(?:Source:|From:|Via:)\s*([^,\n]+)/gi;
-      const dateRegex = /(?:Published:|Date:|Yesterday|Today|\d{1,2}\/\d{1,2}\/\d{4}|\w+ \d{1,2}, \d{4})/gi;
-
-      // Format news articles with enhanced styling
-      cleanText = cleanText.replace(newsArticleRegex, (match) => {
-        // Check if this looks like a news headline
-        const isNewsHeadline = /Reports?|Announces?|Stock|Shares|Earnings|Revenue|Headlines?|News/i.test(match);
-        if (isNewsHeadline) {
-          return `<div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 my-3 rounded-r-lg">
-            <div class="flex items-start space-x-3">
-              <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-              <div>
-                <h4 class="font-semibold text-slate-900 mb-1">📰 ${match.trim()}</h4>
-                <div class="text-xs text-slate-500">Market News • Real-time analysis</div>
-              </div>
-            </div>
-          </div>`;
-        }
-        return match;
-      });
-
-      // Format URLs as clickable links with enhanced styling
-      cleanText = cleanText.replace(urlRegex, (url) => {
-        // Extract domain for display
-        let domain = url;
-        try {
-          domain = new URL(url).hostname.replace('www.', '');
-        } catch (e) {
-          domain = url.substring(0, 30) + '...';
-        }
-        
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
-          class="inline-flex items-center space-x-2 bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-sm font-medium transition-colors group">
-          <span>🔗</span>
-          <span>${domain}</span>
-          <span class="group-hover:translate-x-1 transition-transform">→</span>
-        </a>`;
-      });
-
-      // Format sources with enhanced styling
-      cleanText = cleanText.replace(sourceRegex, (match, source) => {
-        return `<div class="inline-flex items-center space-x-2 bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">
-          <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
-          <span>Source: ${source.trim()}</span>
-        </div>`;
-      });
-
-      // Format dates with enhanced styling
-      cleanText = cleanText.replace(dateRegex, (match) => {
-        return `<span class="inline-flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
-          <span>📅</span>
-          <span>${match}</span>
-        </span>`;
-      });
-
-      // Enhanced sentiment indicators
-      const sentimentRegex = /(Bullish|Bearish|Positive|Negative|Neutral|Optimistic|Pessimistic|sentiment)/gi;
-      cleanText = cleanText.replace(sentimentRegex, (match) => {
-        const sentiment = match.toLowerCase();
-        let bgColor = 'bg-gray-100 text-gray-700';
-        let icon = '📊';
-        
-        if (['bullish', 'positive', 'optimistic'].includes(sentiment)) {
-          bgColor = 'bg-green-100 text-green-700';
-          icon = '📈';
-        } else if (['bearish', 'negative', 'pessimistic'].includes(sentiment)) {
-          bgColor = 'bg-red-100 text-red-700';
-          icon = '📉';
-        }
-        
-        return `<span class="inline-flex items-center space-x-1 ${bgColor} px-2 py-1 rounded-full text-xs font-medium">
-          <span>${icon}</span>
-          <span>${match}</span>
-        </span>`;
-      });
-      
-      return cleanText
-        .replace(/##\s*(.*)/g, '<h3 class="text-xl font-bold text-slate-800 mb-3 flex items-center"><span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>$1</h3>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-slate-900">$1</strong>')
-        .replace(/- (.*)/g, '<div class="flex items-start space-x-2 mb-2"><div class="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div><span class="text-slate-700">$1</span></div>')
-        .replace(/(\$[0-9,]+\.?[0-9]*)/g, '<span class="font-bold text-green-600">$1</span>')
-        .replace(/(RSI[:\s]*[0-9]+\.?[0-9]*)/gi, '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">$1</span>')
-        .replace(/(MACD[:\s]*[0-9\-]+\.?[0-9]*)/gi, '<span class="bg-purple-100 text-purple-800 px-2 py-1 rounded font-medium">$1</span>')
-        .replace(/\n\n/g, '<div class="mb-4"></div>')
-        .replace(/\n/g, '<br>');
-    };
-
     if (parsed.type === 'json' && parsed.data.indicators) {
       const { indicators, symbol, recommendation } = parsed.data;
       
@@ -883,19 +809,7 @@ const StructuredMessage = ({ content, marketData, selectedSymbol }: {
           
           {/* Text Content */}
           {cleanText && (
-            <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg p-4 border border-slate-200">
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div 
-                    className="prose prose-sm max-w-none text-slate-700"
-                    dangerouslySetInnerHTML={{ __html: formatTextContent(cleanText) }}
-                  />
-                </div>
-              </div>
-            </div>
+            <NewsletterMessage content={cleanText} symbol={symbol || selectedSymbol} />
           )}
           
           {/* Technical Analysis Panel */}
@@ -960,22 +874,8 @@ const StructuredMessage = ({ content, marketData, selectedSymbol }: {
       );
     }
     
-    // Default text display with enhanced formatting
-    return (
-      <div className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg p-4 border border-slate-200">
-        <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
-          <div className="flex-1">
-            <div 
-              className="prose prose-sm max-w-none text-slate-700"
-              dangerouslySetInnerHTML={{ __html: formatTextContent(content) }}
-            />
-          </div>
-        </div>
-      </div>
-    );
+    // Default: Use NewsletterMessage for all text content
+    return <NewsletterMessage content={content} symbol={selectedSymbol} />;
     
   } catch (error) {
     console.error('Error in StructuredMessage:', error);
@@ -1042,6 +942,336 @@ const ProfessionalTradingChart = ({ symbol, data }: { symbol: string, data?: Mar
       </div>
     </div>
   );
+};
+
+// Newsletter-style News Article Component
+const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: string }) => {
+  const [enhancedArticles, setEnhancedArticles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const processArticles = async () => {
+      if (isNewsContent(content)) {
+        setLoading(true);
+        try {
+          // First try to get articles from the news sentiment API
+          if (symbol) {
+            const response = await fetch(`/api/news-sentiment?symbol=${symbol}`);
+            if (response.ok) {
+              const newsData = await response.json();
+              
+              // Enhance each article with the summarization API
+              const enhanced = await Promise.all(
+                newsData.articles.slice(0, 3).map(async (article: any) => {
+                  try {
+                    const summaryResponse = await fetch('/api/article-summarizer', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        title: article.title,
+                        summary: article.summary,
+                        source: article.source,
+                        symbol: symbol,
+                        sentiment: article.sentiment
+                      })
+                    });
+                    
+                    if (summaryResponse.ok) {
+                      const summaryData = await summaryResponse.json();
+                      return {
+                        ...article,
+                        enhanced: summaryData.enhanced,
+                        newsletter: summaryData.newsletter_style
+                      };
+                    }
+                  } catch (error) {
+                    console.error('Article summarization failed:', error);
+                  }
+                  
+                  // Fallback to original article
+                  return article;
+                })
+              );
+              
+              setEnhancedArticles(enhanced);
+            }
+          }
+        } catch (error) {
+          console.error('Error processing articles:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    processArticles();
+  }, [content, symbol]);
+
+  const isNewsContent = (text: string): boolean => {
+    const newsIndicators = [
+      'news sentiment',
+      'headlines', 
+      'articles',
+      'recent news',
+      'market news',
+      'sentiment analysis',
+      'breaking'
+    ];
+    return newsIndicators.some(indicator => text.toLowerCase().includes(indicator));
+  };
+
+  try {
+    // If we have enhanced articles, render them
+    if (enhancedArticles.length > 0 && !loading) {
+      return (
+        <div className="space-y-6">
+          {/* Newsletter Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                📰
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">
+                  {symbol || 'Market'} News Digest
+                </h2>
+                <p className="text-blue-100">Latest headlines • Intelligently summarized</p>
+              </div>
+            </div>
+            <div className="text-sm text-blue-200 mt-3">
+              {enhancedArticles.length} articles • Enhanced by AI • Real sources
+            </div>
+          </div>
+
+          {/* Enhanced Articles */}
+          {enhancedArticles.map((article, index) => (
+            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
+              {article.enhanced ? (
+                // Enhanced newsletter-style article
+                <div>
+                  {/* Article Header */}
+                  <div className="p-6 pb-4">
+                    <div className="flex items-start justify-between mb-4">
+                      <h3 className="text-xl font-bold text-gray-900 leading-tight flex-1 mr-4">
+                        {article.enhanced.title || article.title}
+                      </h3>
+                      <span className="text-2xl flex-shrink-0">
+                        {article.enhanced.emoji_sentiment}
+                      </span>
+                    </div>
+                    
+                    {/* Newsletter-style headline */}
+                    {article.newsletter?.headline && (
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mb-4">
+                        <div className="text-sm font-medium text-blue-800">
+                          📌 {article.newsletter.headline}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TL;DR */}
+                    {article.newsletter?.tldr && (
+                      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                        <div className="text-sm font-medium text-yellow-800 mb-1">⚡ TL;DR</div>
+                        <div className="text-yellow-700">{article.newsletter.tldr}</div>
+                      </div>
+                    )}
+
+                    {/* Engaging summary */}
+                    <p className="text-gray-700 text-lg leading-relaxed mb-4">
+                      {article.enhanced.engaging_summary}
+                    </p>
+
+                    {/* Key takeaways */}
+                    {article.enhanced.key_takeaways && (
+                      <div className="mb-4">
+                        <h4 className="font-semibold text-gray-900 mb-2">🎯 Key Takeaways:</h4>
+                        <ul className="space-y-1">
+                          {article.enhanced.key_takeaways.map((takeaway: string, i: number) => (
+                            <li key={i} className="text-gray-700 text-sm flex items-start">
+                              <span className="text-blue-500 mr-2">•</span>
+                              <span>{takeaway}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Article Details */}
+                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      {/* Market Impact */}
+                      {article.enhanced.market_impact && (
+                        <div>
+                          <div className="font-medium text-gray-900 mb-1">📊 Market Impact:</div>
+                          <div className="text-gray-600">{article.enhanced.market_impact}</div>
+                        </div>
+                      )}
+
+                      {/* Investor Action */}
+                      {article.enhanced.investor_action && (
+                        <div>
+                          <div className="font-medium text-gray-900 mb-1">💡 For Investors:</div>
+                          <div className="text-gray-600">{article.enhanced.investor_action}</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fun Fact */}
+                    {article.enhanced.fun_fact && (
+                      <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
+                        <div className="font-medium text-green-800 mb-1">🤓 Fun Fact:</div>
+                        <div className="text-green-700 text-sm">{article.enhanced.fun_fact}</div>
+                      </div>
+                    )}
+
+                    {/* Bottom Line */}
+                    {article.newsletter?.bottom_line && (
+                      <div className="mt-4 p-3 bg-gradient-to-r from-gray-100 to-gray-50 rounded-lg border-l-4 border-gray-400">
+                        <div className="font-medium text-gray-900 mb-1">🎯 Bottom Line:</div>
+                        <div className="text-gray-700 text-sm">{article.newsletter.bottom_line}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Article Footer */}
+                  <div className="px-6 py-4 bg-white border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <span className="flex items-center">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          {article.source}
+                        </span>
+                        <span>📅 {new Date(article.publishedAt).toLocaleDateString()}</span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          article.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
+                          article.sentiment === 'negative' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {article.sentiment || 'neutral'}
+                        </span>
+                      </div>
+                      
+                      {article.url && (
+                        <a 
+                          href={article.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors group"
+                        >
+                          <span>Read Full Article</span>
+                          <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Fallback for non-enhanced articles
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">{article.title}</h3>
+                  <p className="text-gray-700 mb-4">{article.summary}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">{article.source}</span>
+                    {article.url && (
+                      <a 
+                        href={article.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        Read More →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Loading state
+    if (loading) {
+      return (
+        <div className="bg-white rounded-lg border border-gray-200 p-8">
+          <div className="flex items-center justify-center space-x-3">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600">Enhancing articles with AI...</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback to regular text with better formatting
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-start space-x-3">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1">
+            <div className="prose prose-sm max-w-none text-gray-700">
+              {content.split('\n').map((paragraph, index) => {
+                if (paragraph.trim()) {
+                  // Check if it's a headline
+                  if (paragraph.includes('##') || paragraph.includes('**')) {
+                    return (
+                      <h3 key={index} className="text-lg font-bold text-gray-900 mb-2">
+                        {paragraph.replace(/[#*]/g, '').trim()}
+                      </h3>
+                    );
+                  }
+                  
+                  // Check if it contains a URL
+                  const urlMatch = paragraph.match(/(https?:\/\/[^\s]+)/);
+                  if (urlMatch) {
+                    const beforeUrl = paragraph.substring(0, paragraph.indexOf(urlMatch[0]));
+                    const afterUrl = paragraph.substring(paragraph.indexOf(urlMatch[0]) + urlMatch[0].length);
+                    
+                    return (
+                      <p key={index} className="mb-2">
+                        {beforeUrl}
+                        <a 
+                          href={urlMatch[0]} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center mx-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm hover:bg-blue-200 transition-colors"
+                        >
+                          🔗 Source
+                        </a>
+                        {afterUrl}
+                      </p>
+                    );
+                  }
+                  
+                  return (
+                    <p key={index} className="mb-2 leading-relaxed">
+                      {paragraph}
+                    </p>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+    
+  } catch (error) {
+    console.error('Error in NewsletterMessage:', error);
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center space-x-2">
+          <AlertTriangle className="w-4 h-4 text-red-500" />
+          <div className="text-red-600 text-sm">Error displaying news content</div>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default function FinancialAnalyst() {
