@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import ProductionReactiveChart from "./new-chart";
 
@@ -944,85 +944,133 @@ const ProfessionalTradingChart = ({ symbol, data }: { symbol: string, data?: Mar
   );
 };
 
-// Newsletter-style News Article Component
+// Newsletter-style News Article Component with Enhanced AI Summarization
 const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: string }) => {
   const [enhancedArticles, setEnhancedArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const processArticles = async () => {
-      if (isNewsContent(content)) {
-        setLoading(true);
-        try {
-          // First try to get articles from the news sentiment API
-          if (symbol) {
-            const response = await fetch(`/api/news-sentiment?symbol=${symbol}`);
-            if (response.ok) {
-              const newsData = await response.json();
-              
-              // Enhance each article with the summarization API
-              const enhanced = await Promise.all(
-                newsData.articles.slice(0, 3).map(async (article: any) => {
-                  try {
-                    const summaryResponse = await fetch('/api/article-summarizer', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        title: article.title,
-                        summary: article.summary,
-                        source: article.source,
-                        symbol: symbol,
-                        sentiment: article.sentiment
-                      })
-                    });
-                    
-                    if (summaryResponse.ok) {
-                      const summaryData = await summaryResponse.json();
-                      return {
-                        ...article,
-                        enhanced: summaryData.enhanced,
-                        newsletter: summaryData.newsletter_style
-                      };
-                    }
-                  } catch (error) {
-                    console.error('Article summarization failed:', error);
-                  }
-                  
-                  // Fallback to original article
-                  return article;
-                })
-              );
-              
-              setEnhancedArticles(enhanced);
-            }
-          }
-        } catch (error) {
-          console.error('Error processing articles:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    processArticles();
-  }, [content, symbol]);
+  const [hasProcessed, setHasProcessed] = useState(false);
 
   const isNewsContent = (text: string): boolean => {
     const newsIndicators = [
-      'news sentiment',
-      'headlines', 
-      'articles',
-      'recent news',
-      'market news',
-      'sentiment analysis',
-      'breaking'
+      'news sentiment', 'headlines', 'articles', 'recent news',
+      'market news', 'sentiment analysis', 'breaking'
     ];
     return newsIndicators.some(indicator => text.toLowerCase().includes(indicator));
   };
 
+  // Memoized article processing function to prevent infinite loops
+  const processArticles = useCallback(async () => {
+    // Only process if we haven't already and it's actually news content
+    if (hasProcessed || !isNewsContent(content) || !symbol) {
+      return;
+    }
+
+    setLoading(true);
+    setHasProcessed(true);
+
+    try {
+      console.log(`📰 Processing news articles for ${symbol}...`);
+      
+      // Get articles from the news sentiment API
+      const response = await fetch(`/api/news-sentiment?symbol=${symbol}`);
+      if (!response.ok) {
+        throw new Error(`News API error: ${response.status}`);
+      }
+
+      const newsData = await response.json();
+      
+      if (!newsData.articles || newsData.articles.length === 0) {
+        console.log('No articles found in news data');
+        return;
+      }
+
+      console.log(`Found ${newsData.articles.length} articles, enhancing first 3...`);
+      
+      // Enhance only the first 3 articles to avoid overwhelming the API
+      const articlesToEnhance = newsData.articles.slice(0, 3);
+      
+      // Process articles sequentially to avoid rate limiting
+      const enhanced = [];
+      for (let i = 0; i < articlesToEnhance.length; i++) {
+        const article = articlesToEnhance[i];
+        try {
+          console.log(`Enhancing article ${i + 1}: ${article.title.substring(0, 50)}...`);
+          
+          const summaryResponse = await fetch('/api/article-summarizer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: article.title,
+              summary: article.summary,
+              source: article.source,
+              symbol: symbol,
+              sentiment: article.sentiment
+            })
+          });
+          
+          if (summaryResponse.ok) {
+            const summaryData = await summaryResponse.json();
+            enhanced.push({
+              ...article,
+              enhanced: summaryData.enhanced,
+              newsletter: summaryData.newsletter_style
+            });
+          } else {
+            // Fallback to original article if enhancement fails
+            enhanced.push(article);
+          }
+          
+          // Small delay between API calls to prevent rate limiting
+          if (i < articlesToEnhance.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        } catch (error) {
+          console.error(`Failed to enhance article ${i + 1}:`, error);
+          // Fallback to original article
+          enhanced.push(article);
+        }
+      }
+      
+      console.log(`✅ Successfully processed ${enhanced.length} articles`);
+      setEnhancedArticles(enhanced);
+      
+    } catch (error) {
+      console.error('Error processing articles:', error);
+      setEnhancedArticles([]); // Set to empty array on error
+    } finally {
+      setLoading(false);
+    }
+  }, [content, symbol, hasProcessed]);
+
+  // Use useEffect with proper dependencies and cleanup
+  useEffect(() => {
+    // Reset state when content or symbol changes
+    setHasProcessed(false);
+    setEnhancedArticles([]);
+    
+    // Debounce the processing to prevent rapid calls
+    const timeoutId = setTimeout(() => {
+      processArticles();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [content, symbol]);
+
   try {
-    // If we have enhanced articles, render them
-    if (enhancedArticles.length > 0 && !loading) {
+    // Loading state
+    if (loading) {
+      return (
+        <div className="bg-white rounded-lg border border-gray-200 p-8">
+          <div className="flex items-center justify-center space-x-3">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600">Enhancing articles with AI...</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Enhanced newsletter articles
+    if (enhancedArticles.length > 0) {
       return (
         <div className="space-y-6">
           {/* Newsletter Header */}
@@ -1035,19 +1083,15 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                 <h2 className="text-2xl font-bold">
                   {symbol || 'Market'} News Digest
                 </h2>
-                <p className="text-blue-100">Latest headlines • Intelligently summarized</p>
+                <p className="text-blue-100">Latest headlines • AI enhanced summaries</p>
               </div>
-            </div>
-            <div className="text-sm text-blue-200 mt-3">
-              {enhancedArticles.length} articles • Enhanced by AI • Real sources
             </div>
           </div>
 
           {/* Enhanced Articles */}
           {enhancedArticles.map((article, index) => (
-            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
+            <div key={`${article.url}-${index}`} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
               {article.enhanced ? (
-                // Enhanced newsletter-style article
                 <div>
                   {/* Article Header */}
                   <div className="p-6 pb-4">
@@ -1055,13 +1099,11 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                       <h3 className="text-xl font-bold text-gray-900 leading-tight flex-1 mr-4">
                         {article.enhanced.title || article.title}
                       </h3>
-                      <span className="text-2xl flex-shrink-0">
-                        {article.enhanced.emoji_sentiment}
-                      </span>
+                      <span className="text-2xl">{article.enhanced.emoji_sentiment}</span>
                     </div>
                     
-                    {/* Newsletter-style headline */}
-                    {article.newsletter?.headline && (
+                    {/* Newsletter headline */}
+                    {article.newsletter?.headline && article.newsletter.headline !== article.title && (
                       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mb-4">
                         <div className="text-sm font-medium text-blue-800">
                           📌 {article.newsletter.headline}
@@ -1083,7 +1125,7 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                     </p>
 
                     {/* Key takeaways */}
-                    {article.enhanced.key_takeaways && (
+                    {article.enhanced.key_takeaways && article.enhanced.key_takeaways.length > 0 && (
                       <div className="mb-4">
                         <h4 className="font-semibold text-gray-900 mb-2">🎯 Key Takeaways:</h4>
                         <ul className="space-y-1">
@@ -1101,7 +1143,6 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                   {/* Article Details */}
                   <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      {/* Market Impact */}
                       {article.enhanced.market_impact && (
                         <div>
                           <div className="font-medium text-gray-900 mb-1">📊 Market Impact:</div>
@@ -1109,7 +1150,6 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                         </div>
                       )}
 
-                      {/* Investor Action */}
                       {article.enhanced.investor_action && (
                         <div>
                           <div className="font-medium text-gray-900 mb-1">💡 For Investors:</div>
@@ -1118,19 +1158,10 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                       )}
                     </div>
 
-                    {/* Fun Fact */}
                     {article.enhanced.fun_fact && (
                       <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
                         <div className="font-medium text-green-800 mb-1">🤓 Fun Fact:</div>
                         <div className="text-green-700 text-sm">{article.enhanced.fun_fact}</div>
-                      </div>
-                    )}
-
-                    {/* Bottom Line */}
-                    {article.newsletter?.bottom_line && (
-                      <div className="mt-4 p-3 bg-gradient-to-r from-gray-100 to-gray-50 rounded-lg border-l-4 border-gray-400">
-                        <div className="font-medium text-gray-900 mb-1">🎯 Bottom Line:</div>
-                        <div className="text-gray-700 text-sm">{article.newsletter.bottom_line}</div>
                       </div>
                     )}
                   </div>
@@ -1144,13 +1175,6 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                           {article.source}
                         </span>
                         <span>📅 {new Date(article.publishedAt).toLocaleDateString()}</span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          article.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
-                          article.sentiment === 'negative' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {article.sentiment || 'neutral'}
-                        </span>
                       </div>
                       
                       {article.url && (
@@ -1168,7 +1192,6 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                   </div>
                 </div>
               ) : (
-                // Fallback for non-enhanced articles
                 <div className="p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-3">{article.title}</h3>
                   <p className="text-gray-700 mb-4">{article.summary}</p>
@@ -1193,19 +1216,7 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
       );
     }
 
-    // Loading state
-    if (loading) {
-      return (
-        <div className="bg-white rounded-lg border border-gray-200 p-8">
-          <div className="flex items-center justify-center space-x-3">
-            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-600">Enhancing articles with AI...</span>
-          </div>
-        </div>
-      );
-    }
-
-    // Fallback to regular text with better formatting
+    // Fallback for regular text content
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <div className="flex items-start space-x-3">
@@ -1216,7 +1227,6 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
             <div className="prose prose-sm max-w-none text-gray-700">
               {content.split('\n').map((paragraph, index) => {
                 if (paragraph.trim()) {
-                  // Check if it's a headline
                   if (paragraph.includes('##') || paragraph.includes('**')) {
                     return (
                       <h3 key={index} className="text-lg font-bold text-gray-900 mb-2">
@@ -1225,7 +1235,6 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                     );
                   }
                   
-                  // Check if it contains a URL
                   const urlMatch = paragraph.match(/(https?:\/\/[^\s]+)/);
                   if (urlMatch) {
                     const beforeUrl = paragraph.substring(0, paragraph.indexOf(urlMatch[0]));

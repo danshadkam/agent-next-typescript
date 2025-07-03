@@ -101,41 +101,69 @@ function generateNewsArticle(
 ): NewsArticle {
   const company = getCompanyName(symbol);
   const templates = NEWS_TEMPLATES[sentiment];
-  const template = templates[Math.floor(Math.random() * templates.length)];
   
-  // Generate realistic title
+  // Use index to ensure different templates for different articles
+  const templateIndex = (index + Math.floor(Math.random() * 3)) % templates.length;
+  const template = templates[templateIndex];
+  
+  // Generate realistic title with variation
+  const quarter = ['Q1', 'Q2', 'Q3', 'Q4'][Math.floor(Math.random() * 4)];
+  const analyst = ANALYST_FIRMS[Math.floor(Math.random() * ANALYST_FIRMS.length)];
+  
   const title = template
     .replace('{company}', company)
-    .replace('{quarter}', ['1', '2', '3', '4'][Math.floor(Math.random() * 4)])
-    .replace('{analyst}', ANALYST_FIRMS[Math.floor(Math.random() * ANALYST_FIRMS.length)]);
+    .replace('{quarter}', quarter)
+    .replace('{analyst}', analyst);
   
-  // Generate detailed summary
-  const summaries = {
+  // Generate diverse summaries based on template and sentiment
+  const summaryVariations = {
     positive: [
-      `${company} demonstrated exceptional performance this quarter, with revenue and earnings significantly exceeding analyst expectations. The company's strategic initiatives continue to drive growth across all business segments.`,
-      `Strong demand for ${company} products and services has resulted in better-than-expected financial results. Management expressed confidence in maintaining this momentum through the remainder of the year.`,
-      `${company} announced a groundbreaking partnership that is expected to accelerate innovation and market expansion. Industry analysts view this development as highly positive for long-term growth prospects.`
+      `${company} delivered outstanding results this quarter, with key performance indicators significantly surpassing analyst forecasts. The company's strategic initiatives continue to drive robust growth across all major business segments, positioning it well for continued success.`,
+      
+      `Strong operational execution at ${company} has resulted in impressive financial performance that exceeded market expectations. Management's focus on innovation and market expansion is yielding substantial returns for shareholders and stakeholders.`,
+      
+      `${company} announced breakthrough developments that are expected to transform its competitive position in the marketplace. Industry experts are viewing these strategic moves as highly positive indicators for the company's long-term growth trajectory.`,
+      
+      `Exceptional demand for ${company} products and services has driven remarkable financial results this reporting period. The company's ability to capitalize on market opportunities demonstrates strong leadership and effective strategic planning.`,
+      
+      `${company} has successfully executed on key business initiatives, resulting in significant value creation and improved market positioning. These developments reflect the company's commitment to sustainable growth and operational excellence.`
     ],
     negative: [
-      `${company} reported quarterly results that fell short of Wall Street expectations, primarily due to challenging market conditions and increased competition. The company is implementing cost-cutting measures to improve margins.`,
-      `Regulatory challenges and supply chain disruptions have impacted ${company}'s operational efficiency. Management is working to address these issues while maintaining focus on core business objectives.`,
-      `${company} faces headwinds from macroeconomic factors including inflation and changing consumer behavior. The company is adapting its strategy to navigate these challenging market conditions.`
+      `${company} faced challenging market conditions this quarter, with several key metrics falling short of analyst expectations. The company is implementing strategic adjustments to address these headwinds while maintaining focus on core operational objectives.`,
+      
+      `Regulatory pressures and competitive dynamics have created obstacles for ${company}, impacting near-term performance metrics. Management is actively working to navigate these challenges while preserving long-term strategic value.`,
+      
+      `${company} reported results that reflect broader industry headwinds and macroeconomic uncertainties affecting business operations. The company is adapting its strategy to better position itself for future market recovery.`,
+      
+      `Supply chain disruptions and operational challenges have affected ${company}'s ability to meet production targets and revenue expectations. Leadership is implementing comprehensive measures to address these systemic issues.`,
+      
+      `Market volatility and changing consumer preferences have pressured ${company}'s traditional business model, requiring strategic pivots and operational restructuring to maintain competitive positioning.`
     ],
     neutral: [
-      `${company} delivered results that were largely in line with analyst expectations. The company continues to execute on its strategic plan while monitoring market conditions for potential opportunities.`,
-      `${company} maintained steady performance despite broader market volatility. Management provided updates on key initiatives and reaffirmed guidance for the upcoming quarter.`,
-      `${company} announced routine corporate actions including dividend payments and board appointments. The company continues to focus on operational excellence and shareholder value creation.`
+      `${company} reported quarterly results that aligned closely with analyst expectations, demonstrating consistent operational performance in a complex market environment. The company continues to execute on its established strategic roadmap.`,
+      
+      `${company} maintained steady business performance during the reporting period, with mixed results across different business segments. Management provided updates on key initiatives and reaffirmed guidance for upcoming quarters.`,
+      
+      `Regular business operations at ${company} proceeded according to plan, with the company meeting most key performance targets despite challenging market conditions. Leadership emphasized continued focus on operational excellence.`,
+      
+      `${company} delivered results that reflected stable business fundamentals and consistent execution of strategic priorities. The company continues to monitor market conditions while maintaining disciplined operational approaches.`,
+      
+      `${company} announced routine corporate actions and provided stakeholder updates on business progress and strategic initiatives. The company remains focused on long-term value creation through sustainable growth strategies.`
     ]
   };
   
-  const summary = summaries[sentiment][Math.floor(Math.random() * summaries[sentiment].length)];
+  // Select a unique summary based on index and sentiment
+  const summaryOptions = summaryVariations[sentiment];
+  const summaryIndex = (index * 2 + templateIndex) % summaryOptions.length;
+  const summary = summaryOptions[summaryIndex];
   
-  // Generate realistic URL
-  const source = NEWS_SOURCES[Math.floor(Math.random() * NEWS_SOURCES.length)];
+  // Generate realistic URL with better variation
+  const source = NEWS_SOURCES[(index * 3 + templateIndex) % NEWS_SOURCES.length];
   const urlSlug = title.toLowerCase()
     .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/^-|-$/g, '')
+    .substring(0, 60); // Limit slug length
   
   const baseUrls: { [key: string]: string } = {
     'Reuters': 'https://www.reuters.com/business',
@@ -155,16 +183,18 @@ function generateNewsArticle(
   };
   
   const baseUrl = baseUrls[source] || 'https://finance.yahoo.com/news';
-  const url = `${baseUrl}/${urlSlug}-${Date.now() - index * 3600000}`;
+  const uniqueId = Date.now() - (index * 3600000) + Math.floor(Math.random() * 1000);
+  const url = `${baseUrl}/${urlSlug}-${uniqueId}`;
   
-  // Calculate sentiment score
+  // Calculate sentiment score with variation
   const sentimentScores = {
-    positive: 0.65 + Math.random() * 0.35,
-    negative: 0.05 + Math.random() * 0.35,
-    neutral: 0.35 + Math.random() * 0.3
+    positive: 0.65 + (Math.random() * 0.35),
+    negative: 0.05 + (Math.random() * 0.35),
+    neutral: 0.35 + (Math.random() * 0.3)
   };
   
-  const hoursAgo = index * 2 + Math.floor(Math.random() * 4);
+  // Vary publication time to make articles feel more realistic
+  const hoursAgo = index * 2 + Math.floor(Math.random() * 6) + 1;
   const publishedAt = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
   
   return {
@@ -329,13 +359,12 @@ export async function GET(request: NextRequest) {
     // Simulate realistic API delay
     await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 200));
     
-    // Generate diverse sentiment distribution
+    // Generate diverse sentiment distribution based on symbol
     const sentiments: ('positive' | 'negative' | 'neutral')[] = [];
     
-    // Create realistic sentiment distribution based on symbol
     if (symbol.includes('BTC') || symbol.includes('ETH')) {
       // Crypto tends to be more volatile in sentiment
-      sentiments.push('positive', 'positive', 'negative', 'neutral', 'negative', 'positive');
+      sentiments.push('positive', 'negative', 'neutral', 'positive', 'negative');
     } else if (['TSLA', 'NVDA', 'META'].includes(symbol)) {
       // High-beta stocks with mixed sentiment
       sentiments.push('positive', 'positive', 'negative', 'neutral', 'positive');
@@ -344,13 +373,36 @@ export async function GET(request: NextRequest) {
       sentiments.push('positive', 'positive', 'positive', 'neutral', 'negative');
     }
     
-    // Generate articles
-    const articles: NewsArticle[] = sentiments.map((sentiment, index) => 
-      generateNewsArticle(symbol, sentiment, index)
+    // Generate articles with truly diverse content
+    const articles: NewsArticle[] = [];
+    
+    for (let i = 0; i < sentiments.length; i++) {
+      const sentiment = sentiments[i];
+      const article = generateNewsArticle(symbol, sentiment, i);
+      articles.push(article);
+    }
+    
+    // Ensure articles are actually different by checking titles
+    const uniqueArticles = articles.filter((article, index, self) =>
+      index === self.findIndex(a => a.title === article.title)
     );
     
+    // If we have duplicates, regenerate them
+    while (uniqueArticles.length < articles.length) {
+      const missingCount = articles.length - uniqueArticles.length;
+      for (let i = 0; i < missingCount; i++) {
+        const sentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
+        const newArticle = generateNewsArticle(symbol, sentiment, uniqueArticles.length + i + 100); // Different seed
+        
+        // Ensure it's unique
+        if (!uniqueArticles.find(a => a.title === newArticle.title)) {
+          uniqueArticles.push(newArticle);
+        }
+      }
+    }
+    
     // Calculate overall sentiment
-    const { sentiment: overallSentiment, score: sentimentScore } = calculateOverallSentiment(articles);
+    const { sentiment: overallSentiment, score: sentimentScore } = calculateOverallSentiment(uniqueArticles);
     
     // Generate key events and market impact
     const company = getCompanyName(symbol);
@@ -369,20 +421,20 @@ export async function GET(request: NextRequest) {
       neutral: `Mixed sentiment around ${company} suggests a wait-and-see approach from investors. Price action likely to be driven by broader market conditions and upcoming catalysts.`
     };
     
-    const summary = `Based on ${articles.length} recent articles analyzed, ${company} (${symbol}) shows ${overallSentiment} sentiment with a confidence score of ${(sentimentScore * 100).toFixed(1)}%. ${marketImpacts[overallSentiment]}`;
+    const summary = `Based on ${uniqueArticles.length} recent articles analyzed, ${company} (${symbol}) shows ${overallSentiment} sentiment with a confidence score of ${(sentimentScore * 100).toFixed(1)}%. ${marketImpacts[overallSentiment]}`;
     
     const response: NewsSentimentResponse = {
       symbol,
       overallSentiment,
       sentimentScore,
-      articles: articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()),
+      articles: uniqueArticles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()),
       summary,
       keyEvents,
       marketImpact: marketImpacts[overallSentiment],
       timestamp: new Date().toISOString()
     };
     
-    console.log(`✅ Generated ${articles.length} news articles for ${symbol} with ${overallSentiment} sentiment`);
+    console.log(`✅ Generated ${uniqueArticles.length} unique news articles for ${symbol} with ${overallSentiment} sentiment`);
     
     return NextResponse.json(response);
     
