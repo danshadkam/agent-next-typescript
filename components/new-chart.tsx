@@ -176,10 +176,21 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
     await fetchChartData(period, symbol);
   };
 
-  // Load initial data
+  // Load initial data and refresh on symbol changes
   useEffect(() => {
     fetchChartData(selectedPeriod, symbol);
   }, [symbol, data?.price]);
+
+  // Force refresh every minute for real-time data
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (!isLoading) {
+        fetchChartData(selectedPeriod, symbol);
+      }
+    }, 60000); // Refresh every minute
+    
+    return () => clearInterval(refreshInterval);
+  }, [selectedPeriod, symbol, isLoading]);
 
   // Real-time data updates (every 30 seconds for current session)
   useEffect(() => {
@@ -280,7 +291,8 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
             )}
           </h3>
           <p className="text-slate-300 text-sm">
-            {selectedPeriod} • {chartData.length} points • 
+            <span className="bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold mr-2">{selectedPeriod}</span>
+            {chartData.length} points • 
             {error ? ` Error: ${error}` : ` Updated: ${new Date().toLocaleTimeString()}`}
           </p>
         </div>
@@ -335,12 +347,22 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
                 </linearGradient>
               </defs>
               
-              {/* Grid lines */}
+              {/* Price grid lines */}
               {Array.from({ length: 5 }).map((_, i) => (
                 <line
-                  key={`grid-${i}`}
+                  key={`price-grid-${i}`}
                   x1="0" y1={20 + i * 15} x2="100" y2={20 + i * 15}
                   stroke="rgba(148, 163, 184, 0.1)" strokeWidth="0.1"
+                />
+              ))}
+              
+              {/* Time grid lines */}
+              {Array.from({ length: 8 }).map((_, i) => (
+                <line
+                  key={`time-grid-${i}`}
+                  x1={i * 12.5} y1="0" x2={i * 12.5} y2="100"
+                  stroke="rgba(148, 163, 184, 0.08)" strokeWidth="0.05"
+                  strokeDasharray="0.5,0.5"
                 />
               ))}
               
@@ -391,12 +413,28 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
               ${chartMetrics.minPrice.toFixed(2)}
             </div>
             
-            {/* Time labels */}
+            {/* Enhanced Time Labels with More Intervals */}
             <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4 text-xs text-slate-400">
               <span>{chartData[0]?.timestamp}</span>
-              <span>{chartData[Math.floor(chartData.length / 2)]?.timestamp}</span>
+              <span>{chartData[Math.floor(chartData.length * 0.25)]?.timestamp}</span>
+              <span>{chartData[Math.floor(chartData.length * 0.5)]?.timestamp}</span>
+              <span>{chartData[Math.floor(chartData.length * 0.75)]?.timestamp}</span>
               <span>{chartData[chartData.length - 1]?.timestamp}</span>
             </div>
+            
+            {/* Vertical Time Grid Lines */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {[0.25, 0.5, 0.75].map((position, index) => (
+                <line
+                  key={`time-grid-${index}`}
+                  x1={position * 100} y1="10" 
+                  x2={position * 100} y2="90"
+                  stroke="rgba(148, 163, 184, 0.2)" 
+                  strokeWidth="0.1"
+                  strokeDasharray="1,1"
+                />
+              ))}
+            </svg>
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center">

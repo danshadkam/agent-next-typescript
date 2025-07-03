@@ -1002,7 +1002,7 @@ export default function FinancialAnalyst() {
       
       console.log(`🔄 Fetching market data... (attempt ${retryCount + 1})`);
       
-      const response = await fetch("/api/market-data", {
+      const response = await fetch(`/api/market-data?t=${Date.now()}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -1185,14 +1185,17 @@ export default function FinancialAnalyst() {
         return;
       }
       
-      // Try to fetch from API
-      const response = await fetch(`/api/market-data?symbol=${normalizedSearch}`);
+      // Try to fetch from API with cache-busting
+      const response = await fetch(`/api/market-data?symbol=${normalizedSearch}&t=${Date.now()}`);
       if (response.ok) {
         const stockData = await response.json();
         console.log(`✅ Found ${normalizedSearch} via API`);
         setSelectedSymbol(stockData.symbol);
         setSelectedStockData(stockData);
         setSearchQuery(''); // Clear search
+        
+        // Also refresh market data to include the new symbol
+        await fetchMarketData();
         return;
       }
       
@@ -1205,13 +1208,16 @@ export default function FinancialAnalyst() {
       
       for (const variant of cryptoVariants) {
         try {
-          const cryptoResponse = await fetch(`/api/market-data?symbol=${variant}`);
+          const cryptoResponse = await fetch(`/api/market-data?symbol=${variant}&t=${Date.now()}`);
           if (cryptoResponse.ok) {
             const cryptoData = await cryptoResponse.json();
             console.log(`✅ Found crypto ${variant} via API`);
             setSelectedSymbol(cryptoData.symbol);
             setSelectedStockData(cryptoData);
             setSearchQuery(''); // Clear search
+            
+            // Also refresh market data to include the new symbol
+            await fetchMarketData();
             return;
           }
         } catch (err) {
@@ -1706,6 +1712,8 @@ export default function FinancialAnalyst() {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
+          {/* Force cache clear for UI updates */}
+          <div className="hidden" data-cache-bust={Date.now()}></div>
 
           {/* Header */}
           <header className="bg-[#1E293B] border-b border-slate-700 px-6 py-4">
