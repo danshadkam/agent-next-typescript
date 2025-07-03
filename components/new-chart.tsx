@@ -168,6 +168,10 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
 
   const handlePeriodClick = async (period: string) => {
     console.log(`🎯 Period ${period} selected for ${symbol}`);
+    if (isLoading) {
+      console.log('⚠️ Chart is already loading, ignoring click');
+      return;
+    }
     setSelectedPeriod(period);
     await fetchChartData(period, symbol);
   };
@@ -412,13 +416,16 @@ const ProductionReactiveChart = ({ symbol, data }: { symbol: string, data?: Mark
               key={period}
               onClick={() => handlePeriodClick(period)}
               disabled={isLoading}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed relative ${
                 selectedPeriod === period 
                   ? 'bg-blue-500 text-white shadow-lg transform scale-105' 
                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
               }`}
             >
               {period}
+              {isLoading && selectedPeriod === period && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
             </button>
           ))}
         </div>

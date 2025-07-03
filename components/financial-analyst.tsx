@@ -980,6 +980,7 @@ export default function FinancialAnalyst() {
     input,
     handleInputChange,
     handleSubmit,
+    append,
     isLoading: isAgentLoading,
     error: agentError,
   } = useChat({
@@ -1147,36 +1148,17 @@ export default function FinancialAnalyst() {
 
   const handleQuickAction = async (query: string) => {
     try {
-      const response = await fetch("/api/financial-agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: query }],
-          symbol: selectedSymbol,
-          marketData: selectedStockData
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Handle the streaming response
-      const reader = response.body?.getReader();
-      if (!reader) return;
-
-      // For quick actions, we'll submit the query through the chat interface
-      const event = {
-        preventDefault: () => {},
-        target: { value: query }
-      };
+      console.log(`🚀 Quick action triggered: ${query}`);
       
-      // Set the input and submit
-      handleInputChange(event as any);
-      setTimeout(() => {
-        handleSubmit(event as any);
-      }, 100);
-
+      // Use the append function to directly add the message to the chat
+      // This avoids the problematic setTimeout approach
+      await append({
+        role: "user",
+        content: query
+      });
+      
+      console.log(`✅ Quick action submitted successfully`);
+      
     } catch (error) {
       console.error("Quick action error:", error);
     }
@@ -1740,7 +1722,8 @@ export default function FinancialAnalyst() {
                     <button
                       key={index}
                       onClick={() => handleQuickAction(action.query)}
-                      className="bg-[#0F172A] hover:bg-slate-700 border border-slate-600 rounded-lg p-4 text-left transition-all duration-200 hover:border-[#00D4AA]/50 group"
+                      disabled={isAgentLoading}
+                      className="bg-[#0F172A] hover:bg-slate-700 border border-slate-600 rounded-lg p-4 text-left transition-all duration-200 hover:border-[#00D4AA]/50 group disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center space-x-2 mb-2">
                         <div className="text-[#00D4AA] group-hover:scale-110 transition-transform">
@@ -1799,7 +1782,8 @@ export default function FinancialAnalyst() {
                         <button
                           key={index}
                           onClick={() => handleQuickAction(suggestion)}
-                          className="w-full text-left bg-[#0F172A] hover:bg-slate-700 border border-slate-600 rounded-md p-2 text-xs text-slate-300 transition-colors"
+                          disabled={isAgentLoading}
+                          className="w-full text-left bg-[#0F172A] hover:bg-slate-700 border border-slate-600 rounded-md p-2 text-xs text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {suggestion}
                         </button>
