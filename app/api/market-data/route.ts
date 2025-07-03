@@ -48,15 +48,20 @@ const generateRealtimeStockData = (): StockData[] => {
     const volumeVariation = 0.7 + Math.random() * 0.6; // 70%-130% of base volume
     const volume = Math.floor(baseVolume * volumeVariation);
     
-    return {
+    const stockData: StockData = {
       symbol: stock.symbol,
       name: stock.name,
       price: Number(currentPrice.toFixed(2)),
       change: Number(change.toFixed(2)),
       changePercent: Number(changePercent.toFixed(2)),
-      volume,
-      marketCap: stock.marketCap
+      volume: Number(volume)
     };
+    
+    if (stock.marketCap) {
+      stockData.marketCap = Number(stock.marketCap);
+    }
+    
+    return stockData;
   });
 };
 
@@ -66,7 +71,7 @@ const fetchRealStockData = async (symbol?: string): Promise<StockData[]> => {
   
   try {
     // Try Yahoo Finance API (free, no API key needed)
-    const promises = symbols.map(async (sym) => {
+    const promises = symbols.map(async (sym): Promise<StockData | null> => {
       try {
         const response = await fetch(
           `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
@@ -86,20 +91,25 @@ const fetchRealStockData = async (symbol?: string): Promise<StockData[]> => {
         if (!result) throw new Error('No data');
         
         const meta = result.meta;
-        const currentPrice = meta.regularMarketPrice || meta.previousClose || 0;
-        const previousClose = meta.previousClose || currentPrice;
+        const currentPrice = Number(meta.regularMarketPrice || meta.previousClose || 0);
+        const previousClose = Number(meta.previousClose || currentPrice);
         const change = currentPrice - previousClose;
         const changePercent = previousClose ? (change / previousClose) * 100 : 0;
         
-        return {
+        const stockData: StockData = {
           symbol: sym,
           name: getCompanyName(sym),
           price: Number(currentPrice.toFixed(2)),
           change: Number(change.toFixed(2)),
           changePercent: Number(changePercent.toFixed(2)),
-          volume: meta.regularMarketVolume || 1000000,
-          marketCap: meta.marketCap || 0
+          volume: Number(meta.regularMarketVolume || 1000000)
         };
+        
+        if (meta.marketCap && meta.marketCap > 0) {
+          stockData.marketCap = Number(meta.marketCap);
+        }
+        
+        return stockData;
       } catch (error) {
         console.warn(`Failed to fetch real data for ${sym}:`, error);
         return null;
