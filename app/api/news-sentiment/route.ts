@@ -611,7 +611,7 @@ function calculateArticleSentiment(text: string): { sentiment: 'positive' | 'neg
 }
 
 // Generate instant enhancement (no delays)
-function generateInstantEnhancement(title: string, summary: string, sentiment: any, symbol: string) {
+function generateInstantEnhancement(title: string, summary: string, sentiment: { sentiment: 'positive' | 'negative' | 'neutral', score: number }, symbol: string) {
   const company = getCompanyName(symbol);
   
   const enhancedTitles = {
