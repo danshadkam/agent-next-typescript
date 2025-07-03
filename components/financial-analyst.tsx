@@ -235,15 +235,25 @@ export default function FinancialAnalyst() {
     maxSteps: 15,
   });
 
+  // Fix hydration issues - use null initial states for client-only data
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSymbol, setSelectedSymbol] = useState("AAPL");
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [chatMinimized, setChatMinimized] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null); // Changed to null to avoid hydration mismatch
+  const [isClient, setIsClient] = useState(false); // Add client-side flag
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch real market data from dedicated API
+  // Ensure client-side only execution
   useEffect(() => {
+    setIsClient(true);
+    setLastUpdate(new Date());
+  }, []);
+
+  // Fetch real market data from dedicated API - only on client
+  useEffect(() => {
+    if (!isClient) return; // Don't run on server-side
+
     const fetchMarketData = async () => {
       try {
         console.log('Fetching real-time market data...');
@@ -298,7 +308,7 @@ export default function FinancialAnalyst() {
     const interval = setInterval(fetchMarketData, 60000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [isClient]);
 
   const quickActions: QuickAction[] = [
     {
@@ -397,7 +407,9 @@ export default function FinancialAnalyst() {
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">Last Update</span>
-            <span className="text-slate-300 text-sm">{lastUpdate.toLocaleTimeString()}</span>
+            <span className="text-slate-300 text-sm">
+              {isClient && lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}
+            </span>
           </div>
         </div>
       </div>
@@ -620,6 +632,20 @@ export default function FinancialAnalyst() {
 
   const selectedStock = marketData.find(d => d.symbol === selectedSymbol);
 
+  // Don't render time-sensitive content until client-side hydration
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-[#0B1426] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-gradient-to-r from-[#00D4AA] to-[#00B4D8] rounded-lg flex items-center justify-center mx-auto mb-4">
+            <Activity className="w-5 h-5 text-white" />
+          </div>
+          <div className="text-[#00D4AA] font-semibold">Loading Financial Analyst...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0B1426] text-white">
       {/* Header */}
@@ -636,7 +662,7 @@ export default function FinancialAnalyst() {
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
               <span>Live Market Data</span>
               <Clock className="w-3 h-3 ml-2" />
-              <span>{lastUpdate.toLocaleTimeString()}</span>
+              <span>{lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}</span>
             </div>
           </div>
           <div className="flex items-center space-x-4">
