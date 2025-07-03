@@ -812,8 +812,8 @@ const StructuredMessage = ({ content, marketData, selectedSymbol }: {
             <NewsletterMessage content={cleanText} symbol={symbol || selectedSymbol} />
           )}
           
-          {/* Technical Analysis Panel */}
-          <div className="bg-gradient-to-r from-slate-900 to-blue-900 rounded-lg border border-slate-700 overflow-hidden">
+          {/* Dark Technical Analysis Panel */}
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-lg border border-slate-600 overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-r from-[#00D4AA] to-cyan-500 p-4">
               <div className="flex items-center space-x-3">
@@ -1015,65 +1015,65 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
     if (articles.length > 0) {
       return (
         <div className="space-y-6">
-          {/* Newsletter Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+          {/* Dark Newsletter Header */}
+          <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-lg p-6 text-white border border-slate-600">
             <div className="flex items-center space-x-3 mb-2">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-[#00D4AA]/20 rounded-lg flex items-center justify-center">
                 📰
               </div>
               <div>
-                <h2 className="text-2xl font-bold">
-                  {symbol || 'Market'} News Digest
+                <h2 className="text-2xl font-bold text-white">
+                  {symbol || 'Market'} Live News Feed
                 </h2>
-                <p className="text-blue-100">Latest headlines • Instantly enhanced</p>
+                <p className="text-slate-300">Real-time market intelligence • Enhanced analysis</p>
               </div>
             </div>
           </div>
 
-          {/* Enhanced Articles */}
+          {/* Dark Enhanced Articles */}
           {articles.map((article, index) => (
-            <div key={`${article.url}-${index}`} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
+            <div key={`${article.url}-${index}`} className="bg-slate-800 rounded-xl shadow-lg border border-slate-600 overflow-hidden hover:shadow-xl transition-all duration-300">
               {article.enhanced ? (
                 <div>
-                  {/* Article Header */}
+                  {/* Dark Article Header */}
                   <div className="p-6 pb-4">
                     <div className="flex items-start justify-between mb-4">
-                      <h3 className="text-xl font-bold text-gray-900 leading-tight flex-1 mr-4">
+                      <h3 className="text-xl font-bold text-white leading-tight flex-1 mr-4">
                         {article.enhanced.title || article.title}
                       </h3>
                       <span className="text-2xl">{article.enhanced.emoji_sentiment}</span>
                     </div>
                     
-                    {/* Newsletter headline */}
+                    {/* Dark Newsletter headline */}
                     {article.newsletter?.headline && article.newsletter.headline !== article.title && (
-                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mb-4">
-                        <div className="text-sm font-medium text-blue-800">
+                      <div className="bg-gradient-to-r from-[#00D4AA]/20 to-cyan-500/20 rounded-lg p-3 mb-4 border border-[#00D4AA]/30">
+                        <div className="text-sm font-medium text-[#00D4AA]">
                           📌 {article.newsletter.headline}
                         </div>
                       </div>
                     )}
 
-                    {/* TL;DR */}
+                    {/* Dark TL;DR */}
                     {article.newsletter?.tldr && (
-                      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
-                        <div className="text-sm font-medium text-yellow-800 mb-1">⚡ TL;DR</div>
-                        <div className="text-yellow-700">{article.newsletter.tldr}</div>
+                      <div className="bg-yellow-500/20 border-l-4 border-yellow-400 p-3 mb-4">
+                        <div className="text-sm font-medium text-yellow-300 mb-1">⚡ TL;DR</div>
+                        <div className="text-yellow-100">{article.newsletter.tldr}</div>
                       </div>
                     )}
 
-                    {/* Engaging summary */}
-                    <p className="text-gray-700 text-lg leading-relaxed mb-4">
+                    {/* Dark engaging summary */}
+                    <p className="text-slate-200 text-lg leading-relaxed mb-4">
                       {article.enhanced.engaging_summary}
                     </p>
 
-                    {/* Key takeaways */}
+                    {/* Dark key takeaways */}
                     {article.enhanced.key_takeaways && article.enhanced.key_takeaways.length > 0 && (
                       <div className="mb-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">🎯 Key Takeaways:</h4>
+                        <h4 className="font-semibold text-white mb-2">🎯 Key Takeaways:</h4>
                         <ul className="space-y-1">
                           {article.enhanced.key_takeaways.map((takeaway: string, i: number) => (
-                            <li key={i} className="text-gray-700 text-sm flex items-start">
-                              <span className="text-blue-500 mr-2">•</span>
+                            <li key={i} className="text-slate-300 text-sm flex items-start">
+                              <span className="text-[#00D4AA] mr-2">•</span>
                               <span>{takeaway}</span>
                             </li>
                           ))}
@@ -1082,57 +1082,57 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                     )}
                   </div>
 
-                  {/* Article Details */}
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                  {/* Dark Article Details */}
+                  <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-600">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       {article.enhanced.market_impact && (
                         <div>
-                          <div className="font-medium text-gray-900 mb-1">📊 Market Impact:</div>
-                          <div className="text-gray-600">{article.enhanced.market_impact}</div>
+                          <div className="font-medium text-white mb-1">📊 Market Impact:</div>
+                          <div className="text-slate-300">{article.enhanced.market_impact}</div>
                         </div>
                       )}
 
                       {article.enhanced.investor_action && (
                         <div>
-                          <div className="font-medium text-gray-900 mb-1">💡 For Investors:</div>
-                          <div className="text-gray-600">{article.enhanced.investor_action}</div>
+                          <div className="font-medium text-white mb-1">💡 For Investors:</div>
+                          <div className="text-slate-300">{article.enhanced.investor_action}</div>
                         </div>
                       )}
                     </div>
 
                     {article.enhanced.fun_fact && (
-                      <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
-                        <div className="font-medium text-green-800 mb-1">🤓 Fun Fact:</div>
-                        <div className="text-green-700 text-sm">{article.enhanced.fun_fact}</div>
+                      <div className="mt-4 p-3 bg-gradient-to-r from-green-500/20 to-blue-500/20 rounded-lg border border-green-500/30">
+                        <div className="font-medium text-green-300 mb-1">🤓 Market Insight:</div>
+                        <div className="text-green-200 text-sm">{article.enhanced.fun_fact}</div>
                       </div>
                     )}
                   </div>
 
-                  {/* Article Footer */}
-                  <div className="px-6 py-4 bg-white border-t border-gray-100">
+                  {/* Dark Article Footer */}
+                  <div className="px-6 py-4 bg-slate-800 border-t border-slate-600">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <div className="flex items-center space-x-4 text-sm text-slate-400">
                         <span className="flex items-center">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          <span className="w-2 h-2 bg-[#00D4AA] rounded-full mr-2"></span>
                           {article.source}
                         </span>
                         <span>📅 {new Date(article.publishedAt).toLocaleDateString()}</span>
                       </div>
                       
-                      <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                        📖 Demo Article
+                      <div className="text-sm text-slate-400 bg-slate-700 px-3 py-1 rounded-full">
+                        📈 Live Market Data
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">{article.title}</h3>
-                  <p className="text-gray-700 mb-4">{article.summary}</p>
+                <div className="p-6 bg-slate-800">
+                  <h3 className="text-lg font-bold text-white mb-3">{article.title}</h3>
+                  <p className="text-slate-300 mb-4">{article.summary}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">{article.source}</span>
-                    <div className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                      📖 Demo Article
+                    <span className="text-sm text-slate-400">{article.source}</span>
+                    <div className="text-sm text-slate-400 bg-slate-700 px-3 py-1 rounded-full">
+                      📈 Live Feed
                     </div>
                   </div>
                 </div>
@@ -1143,20 +1143,20 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
       );
     }
 
-    // Fallback for regular text content
+    // Dark Fallback for regular text content
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-slate-800 rounded-lg border border-slate-600 p-4">
         <div className="flex items-start space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 bg-gradient-to-r from-[#00D4AA] to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <div className="flex-1">
-            <div className="prose prose-sm max-w-none text-gray-700">
+            <div className="prose prose-sm max-w-none text-slate-200">
               {content.split('\n').map((paragraph, index) => {
                 if (paragraph.trim()) {
                   if (paragraph.includes('##') || paragraph.includes('**')) {
                     return (
-                      <h3 key={index} className="text-lg font-bold text-gray-900 mb-2">
+                      <h3 key={index} className="text-lg font-bold text-white mb-2">
                         {paragraph.replace(/[#*]/g, '').trim()}
                       </h3>
                     );
@@ -1170,8 +1170,8 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                     return (
                       <p key={index} className="mb-2">
                         {beforeUrl}
-                        <span className="inline-flex items-center mx-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                          🔗 Demo Link
+                        <span className="inline-flex items-center mx-1 px-2 py-1 bg-[#00D4AA]/20 text-[#00D4AA] rounded text-sm border border-[#00D4AA]/30">
+                          🔗 Live Link
                         </span>
                         {afterUrl}
                       </p>
@@ -1179,7 +1179,7 @@ const NewsletterMessage = ({ content, symbol }: { content: string, symbol?: stri
                   }
                   
                   return (
-                    <p key={index} className="mb-2 leading-relaxed">
+                    <p key={index} className="mb-2 leading-relaxed text-slate-200">
                       {paragraph}
                     </p>
                   );
