@@ -544,10 +544,18 @@ export class FinancialDataService {
   }
 
   private getEnhancedMockTechnicalAnalysis(symbol: string): TechnicalAnalysis {
+    // Get the current price for this specific symbol to calculate realistic moving averages
+    const stockData = this.getEnhancedMockStockData(symbol);
+    const currentPrice = stockData.price;
+    
     const rsi = 30 + Math.random() * 40; // 30-70 range (more realistic)
     const macdValue = (Math.random() - 0.5) * 2;
     const macdSignal = macdValue + (Math.random() - 0.5) * 0.5;
-    const sma20 = 100 + Math.random() * 200;
+    
+    // Calculate moving averages based on actual current price for this symbol
+    const sma20 = currentPrice * (0.98 + Math.random() * 0.04); // Within 2% of current price
+    const sma50 = currentPrice * (0.95 + Math.random() * 0.06); // Typically below current for uptrend
+    const sma200 = currentPrice * (0.90 + Math.random() * 0.10); // Longer term average
     
     return {
       symbol: symbol.toUpperCase(),
@@ -560,8 +568,8 @@ export class FinancialDataService {
         },
         movingAverages: {
           sma20: Number(sma20.toFixed(2)),
-          sma50: Number((sma20 * 0.98).toFixed(2)),
-          sma200: Number((sma20 * 0.95).toFixed(2)),
+          sma50: Number(sma50.toFixed(2)),
+          sma200: Number(sma200.toFixed(2)),
         },
         bollingerBands: {
           upper: Number((sma20 * 1.02).toFixed(2)),

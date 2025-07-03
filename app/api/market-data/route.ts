@@ -1,97 +1,124 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { FinancialDataService } from '@/lib/financial-data';
 
 const financialService = new FinancialDataService();
 
-export async function GET() {
-  try {
-    console.log('Fetching real market data...');
-    
-    // Define major stocks and crypto symbols
-    const stockSymbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX'];
-    const cryptoSymbols = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
-    
-    // Fetch real market data with enhanced error handling
-    const allSymbols = [...stockSymbols, ...cryptoSymbols];
-    const marketData = [];
-    
-    for (let i = 0; i < allSymbols.length; i++) {
-      const symbol = allSymbols[i];
-      try {
-        console.log(`Fetching data for ${symbol}...`);
-        const stockData = await financialService.getStockData(symbol);
-        
-        // Transform to match MarketData interface
-        marketData.push({
-          symbol: stockData.symbol,
-          name: stockData.name,
-          price: Number(stockData.price.toFixed(2)),
-          change: Number(stockData.change.toFixed(2)),
-          changePercent: Number(stockData.changePercent.toFixed(2)),
-          volume: stockData.volume,
-          marketCap: stockData.marketCap
-        });
-        
-        // Add delay between requests to avoid rate limiting
-        if (i < allSymbols.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-      } catch (error) {
-        console.error(`Error fetching ${symbol}:`, error);
-        // Add fallback data for failed requests
-        marketData.push(getRealtimeFallbackData(symbol));
-      }
-    }
-    
-    console.log(`Successfully fetched data for ${marketData.length} symbols`);
-    
-    return NextResponse.json({
-      success: true,
-      data: marketData,
-      timestamp: new Date().toISOString(),
-      message: `Updated ${marketData.length} symbols`
-    });
-    
-  } catch (error) {
-    console.error('Market data fetch error:', error);
-    
-    // Return realistic fallback data with current-like prices
-    const fallbackData = getAllRealtimeFallbackData();
-    
-    return NextResponse.json({
-      success: false,
-      data: fallbackData,
-      timestamp: new Date().toISOString(),
-      message: 'Using fallback data due to API limitations'
-    });
-  }
+interface StockData {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  volume: number;
+  marketCap?: number;
 }
 
-// Enhanced fallback data that updates with realistic market movements
-function getRealtimeFallbackData(symbol: string) {
+// Enhanced stock data with more realistic values and variation
+const generateRealtimeStockData = (): StockData[] => {
+  const baseStocks = [
+    { symbol: "AAPL", name: "Apple Inc.", basePrice: 193.97, marketCap: 3021000000000 },
+    { symbol: "MSFT", name: "Microsoft Corp.", basePrice: 378.85, marketCap: 2813000000000 },
+    { symbol: "GOOGL", name: "Alphabet Inc.", basePrice: 140.93, marketCap: 1756000000000 },
+    { symbol: "AMZN", name: "Amazon.com Inc.", basePrice: 175.43, marketCap: 1832000000000 },
+    { symbol: "TSLA", name: "Tesla Inc.", basePrice: 248.50, marketCap: 791000000000 },
+    { symbol: "NVDA", name: "NVIDIA Corp.", basePrice: 118.76, marketCap: 2918000000000 },
+    { symbol: "META", name: "Meta Platforms Inc.", basePrice: 486.23, marketCap: 1245000000000 },
+    { symbol: "NFLX", name: "Netflix Inc.", basePrice: 634.87, marketCap: 280000000000 },
+    { symbol: "BTC-USD", name: "Bitcoin", basePrice: 96875.23, marketCap: 1900000000000 },
+    { symbol: "ETH-USD", name: "Ethereum", basePrice: 3445.67, marketCap: 414000000000 },
+    { symbol: "SOL-USD", name: "Solana", basePrice: 192.45, marketCap: 91000000000 }
+  ];
+
   const now = new Date();
-  const marketHour = now.getHours();
-  const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
+  const marketOpen = now.getHours() >= 9 && now.getHours() <= 16;
   
-  // Base prices that change slowly over time
-  const basePrices: { [key: string]: number } = {
-    'AAPL': 193.50 + Math.sin(dayOfYear * 0.1) * 5,
-    'GOOGL': 141.20 + Math.sin(dayOfYear * 0.15) * 8,
-    'MSFT': 379.00 + Math.sin(dayOfYear * 0.12) * 12,
-    'AMZN': 155.80 + Math.sin(dayOfYear * 0.18) * 10,
-    'TSLA': 248.90 + Math.sin(dayOfYear * 0.25) * 25,
-    'NVDA': 118.50 + Math.sin(dayOfYear * 0.3) * 15,
-    'META': 563.20 + Math.sin(dayOfYear * 0.2) * 20,
-    'NFLX': 695.40 + Math.sin(dayOfYear * 0.16) * 30,
-    'BTC-USD': 97200 + Math.sin(dayOfYear * 0.4) * 3000,
-    'ETH-USD': 3445 + Math.sin(dayOfYear * 0.35) * 200,
-    'SOL-USD': 192 + Math.sin(dayOfYear * 0.5) * 20
-  };
+  return baseStocks.map(stock => {
+    // Generate realistic price movement based on time and market conditions
+    const timeBasedVariation = Math.sin(now.getMinutes() * 0.1) * 0.005; // Small time-based variation
+    const marketVariation = marketOpen ? (Math.random() - 0.5) * 0.03 : (Math.random() - 0.5) * 0.01; // Higher variation during market hours
+    const cryptoMultiplier = stock.symbol.includes('-USD') ? 2 : 1; // Crypto is more volatile
+    
+    const priceVariation = (timeBasedVariation + marketVariation) * cryptoMultiplier;
+    const currentPrice = stock.basePrice * (1 + priceVariation);
+    const change = currentPrice - stock.basePrice;
+    const changePercent = (change / stock.basePrice) * 100;
+    
+    // Generate realistic volume based on market cap and time
+    const baseVolume = Math.sqrt(stock.marketCap / 1000000) * 100000;
+    const volumeVariation = 0.7 + Math.random() * 0.6; // 70%-130% of base volume
+    const volume = Math.floor(baseVolume * volumeVariation);
+    
+    return {
+      symbol: stock.symbol,
+      name: stock.name,
+      price: Number(currentPrice.toFixed(2)),
+      change: Number(change.toFixed(2)),
+      changePercent: Number(changePercent.toFixed(2)),
+      volume,
+      marketCap: stock.marketCap
+    };
+  });
+};
+
+// Function to fetch real data from external APIs
+const fetchRealStockData = async (symbol?: string): Promise<StockData[]> => {
+  const symbols = symbol ? [symbol] : ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA'];
   
-  const companyNames: { [key: string]: string } = {
+  try {
+    // Try Yahoo Finance API (free, no API key needed)
+    const promises = symbols.map(async (sym) => {
+      try {
+        const response = await fetch(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; Financial-App/1.0)',
+            },
+            signal: AbortSignal.timeout(5000) // 5 second timeout
+          }
+        );
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        const result = data.chart?.result?.[0];
+        
+        if (!result) throw new Error('No data');
+        
+        const meta = result.meta;
+        const currentPrice = meta.regularMarketPrice || meta.previousClose || 0;
+        const previousClose = meta.previousClose || currentPrice;
+        const change = currentPrice - previousClose;
+        const changePercent = previousClose ? (change / previousClose) * 100 : 0;
+        
+        return {
+          symbol: sym,
+          name: getCompanyName(sym),
+          price: Number(currentPrice.toFixed(2)),
+          change: Number(change.toFixed(2)),
+          changePercent: Number(changePercent.toFixed(2)),
+          volume: meta.regularMarketVolume || 1000000,
+          marketCap: meta.marketCap || 0
+        };
+      } catch (error) {
+        console.warn(`Failed to fetch real data for ${sym}:`, error);
+        return null;
+      }
+    });
+    
+    const results = await Promise.all(promises);
+    return results.filter((result): result is StockData => result !== null);
+  } catch (error) {
+    console.error('Failed to fetch real stock data:', error);
+    return [];
+  }
+};
+
+const getCompanyName = (symbol: string): string => {
+  const names: { [key: string]: string } = {
     'AAPL': 'Apple Inc.',
-    'GOOGL': 'Alphabet Inc.',
     'MSFT': 'Microsoft Corp.',
+    'GOOGL': 'Alphabet Inc.',
     'AMZN': 'Amazon.com Inc.',
     'TSLA': 'Tesla Inc.',
     'NVDA': 'NVIDIA Corp.',
@@ -101,43 +128,125 @@ function getRealtimeFallbackData(symbol: string) {
     'ETH-USD': 'Ethereum',
     'SOL-USD': 'Solana'
   };
+  return names[symbol] || symbol;
+};
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const symbol = searchParams.get('symbol');
   
-  const basePrice = basePrices[symbol] || 100;
-  
-  // Add intraday movement (more during market hours)
-  const isMarketHours = marketHour >= 9 && marketHour <= 16;
-  const volatilityMultiplier = isMarketHours ? 1.5 : 0.5;
-  
-  // Generate realistic intraday movement
-  const minutesSinceMarketOpen = isMarketHours ? (marketHour - 9) * 60 + now.getMinutes() : 0;
-  const intradayMovement = Math.sin(minutesSinceMarketOpen * 0.02) * basePrice * 0.01 * volatilityMultiplier;
-  
-  // Add some randomness but keep it consistent for the same minute
-  const randomSeed = Math.floor(now.getTime() / 60000); // Changes every minute
-  const pseudoRandom = (Math.sin(randomSeed * symbol.length) + 1) / 2;
-  const randomMovement = (pseudoRandom - 0.5) * basePrice * 0.015;
-  
-  const currentPrice = basePrice + intradayMovement + randomMovement;
-  const change = intradayMovement + randomMovement;
-  const changePercent = (change / basePrice) * 100;
-  
-  // Generate realistic volume
-  const baseVolume = symbol.includes('USD') ? 15000000 : 25000000;
-  const volumeVariation = Math.sin(randomSeed * 0.1) * 0.3 + 1;
-  const volume = Math.floor(baseVolume * volumeVariation);
-  
-  return {
-    symbol,
-    name: companyNames[symbol] || symbol,
-    price: Number(currentPrice.toFixed(2)),
-    change: Number(change.toFixed(2)),
-    changePercent: Number(changePercent.toFixed(2)),
-    volume,
-    marketCap: symbol.includes('USD') ? 0 : Math.floor(currentPrice * 1000000000)
-  };
+  try {
+    console.log('📊 Market data request:', { symbol, timestamp: new Date().toISOString() });
+    
+    // Try to fetch real data first
+    let realData: StockData[] = [];
+    try {
+      realData = await fetchRealStockData(symbol || undefined);
+      console.log(`✅ Fetched ${realData.length} real stock data points`);
+    } catch (error) {
+      console.warn('⚠️ Real data fetch failed, using generated data:', error);
+    }
+    
+    // Generate mock data as fallback or supplement
+    const mockData = generateRealtimeStockData();
+    
+    // Combine real data with mock data, preferring real data
+    const combinedData = mockData.map(mock => {
+      const real = realData.find(r => r.symbol === mock.symbol);
+      return real || mock;
+    });
+    
+    // If requesting specific symbol, filter and return single stock
+    if (symbol) {
+      const stockData = combinedData.find(stock => 
+        stock.symbol.toUpperCase() === symbol.toUpperCase()
+      );
+      
+      if (!stockData) {
+        return NextResponse.json(
+          { error: `Stock symbol ${symbol} not found` },
+          { status: 404 }
+        );
+      }
+      
+      return NextResponse.json(stockData, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+    }
+    
+    // Return all stocks
+    const response = {
+      stocks: combinedData,
+      timestamp: new Date().toISOString(),
+      source: realData.length > 0 ? 'mixed' : 'generated',
+      count: combinedData.length
+    };
+    
+    console.log(`📈 Returning ${combinedData.length} stocks (${realData.length} real, ${combinedData.length - realData.length} generated)`);
+    
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Market data API error:', error);
+    
+    // Return fallback data with error indication
+    const fallbackData = generateRealtimeStockData();
+    
+    return NextResponse.json({
+      stocks: fallbackData,
+      timestamp: new Date().toISOString(),
+      source: 'fallback',
+      count: fallbackData.length,
+      error: 'Using fallback data due to API issues'
+    }, {
+      status: 200, // Still return 200 so app doesn't break
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+  }
 }
 
-function getAllRealtimeFallbackData() {
-  const symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'BTC-USD', 'ETH-USD', 'SOL-USD'];
-  return symbols.map(symbol => getRealtimeFallbackData(symbol));
+export async function POST(request: NextRequest) {
+  try {
+    const { symbols } = await request.json();
+    
+    if (!Array.isArray(symbols)) {
+      return NextResponse.json(
+        { error: 'Invalid request. Expected array of symbols.' },
+        { status: 400 }
+      );
+    }
+    
+    const data = generateRealtimeStockData();
+    const requestedStocks = data.filter(stock => 
+      symbols.includes(stock.symbol.toUpperCase())
+    );
+    
+    return NextResponse.json({
+      stocks: requestedStocks,
+      timestamp: new Date().toISOString(),
+      requested: symbols.length,
+      returned: requestedStocks.length
+    });
+    
+  } catch (error) {
+    console.error('Market data POST error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 } 

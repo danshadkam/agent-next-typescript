@@ -14,13 +14,66 @@ interface Message {
 const financialDataService = new FinancialDataService();
 const retrievalService = new RetrievalService();
 
+// Helper function to extract stock symbol from messages
+function extractSymbolFromMessages(messages: Message[]): string | null {
+  const lastMessage = messages[messages.length - 1]?.content || '';
+  
+  // Look for "REAL MARKET DATA for [SYMBOL]" pattern first
+  const realDataMatch = lastMessage.match(/REAL MARKET DATA for ([A-Z]{2,5}):/);
+  if (realDataMatch) {
+    return realDataMatch[1];
+  }
+  
+  // Look for common stock symbols specifically
+  const knownSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'BTC', 'ETH', 'SOL'];
+  const symbolMatch = lastMessage.match(/\b([A-Z]{2,5})\b/g);
+  
+  if (symbolMatch) {
+    // Prioritize known symbols
+    const knownSymbolMatch = symbolMatch.find(symbol => knownSymbols.includes(symbol));
+    if (knownSymbolMatch) {
+      return knownSymbolMatch;
+    }
+    
+    // Filter out common words that might match the pattern
+    const commonWords = ['THE', 'AND', 'FOR', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HIS', 'HER', 'WAS', 'ONE', 'OUR', 'OUT', 'DAY', 'GET', 'USE', 'MAN', 'NEW', 'NOW', 'OLD', 'SEE', 'HIM', 'TWO', 'HOW', 'ITS', 'WHO', 'DID', 'YES', 'HAS', 'HAD', 'LET', 'PUT', 'TOO', 'SAY', 'SHE', 'MAY', 'WAY', 'BUY', 'OWN', 'REAL'];
+    const filteredSymbols = symbolMatch.filter(symbol => !commonWords.includes(symbol));
+    
+    if (filteredSymbols.length > 0) {
+      return filteredSymbols[0];
+    }
+  }
+  
+  return null;
+}
+
 export async function POST(req: Request) {
-  const { messages }: { messages: Message[] } = await req.json();
+  const { messages, symbol, marketData }: { 
+    messages: Message[]; 
+    symbol?: string;
+    marketData?: any;
+  } = await req.json();
+  
+  // Extract symbol from the request or messages
+  const requestedSymbol = symbol || extractSymbolFromMessages(messages) || 'AAPL';
+  console.log(`Financial Agent analyzing symbol: ${requestedSymbol}`);
 
   const result = streamText({
     model: openai("gpt-4o"),
     maxSteps: 10,
-    system: `You are a professional financial analyst AI with access to real-time market data and technical analysis tools. 
+    system: `You are a professional financial analyst AI with access to real-time market data and technical analysis tools.
+
+🎯 CURRENT ANALYSIS TARGET: ${requestedSymbol}
+${marketData ? `📊 REAL MARKET DATA PROVIDED: Price: $${marketData.price}, Volume: ${marketData.volume.toLocaleString()}, Change: ${marketData.changePercent}%` : ''}
+
+IMPORTANT: You are analyzing ${requestedSymbol}. All analysis, data, and recommendations must be specific to ${requestedSymbol}, not any other stock.
+
+🔧 MANDATORY REQUIREMENTS FOR ${requestedSymbol}:
+1. You are ONLY analyzing ${requestedSymbol} - no other stock
+2. ALWAYS call getTechnicalAnalysis("${requestedSymbol}") first
+3. ALWAYS call getStockData("${requestedSymbol}") for current data
+4. NEVER mention other symbols or provide generic analysis
+5. All data, indicators, and recommendations must be specific to ${requestedSymbol}
 
 🎯 CORE MISSION: Provide structured, professional financial analysis that matches institutional-grade research reports.
 
@@ -76,33 +129,19 @@ export async function POST(req: Request) {
 - Include professional disclaimers
 - Maintain institutional tone throughout
 
-🚨 CRITICAL: Always end responses with the complete JSON data from tool calls for chart generation.
+🚨 CRITICAL: 
+- NEVER include JSON code blocks, raw JSON, or technical data structures in responses
+- Keep responses clean and user-friendly 
+- All technical data should be embedded naturally in the analysis text
+- Focus on actionable insights, not raw data dumps
 
-Example JSON structure:
-{
-  "symbol": "AAPL",
-  "price": 193.97,
-  "change": 2.34,
-  "changePercent": 1.22,
-  "indicators": {
-    "rsi": 66.3,
-    "macd": {
-      "value": 0.45,
-      "signal": 0.32,
-      "histogram": 0.13
-    },
-    "sma20": 191.42,
-    "sma50": 185.67,
-    "bollingerBands": {
-      "upper": 201.45,
-      "middle": 191.42,
-      "lower": 181.39
-    }
-  },
-  "recommendation": "HOLD",
-  "priceTarget": 200.00,
-  "riskRating": "Medium"
-}`,
+📝 RESPONSE GUIDELINES:
+- Use clear, professional language
+- Include specific price targets and recommendations
+- Explain technical indicators in plain English
+- Provide actionable investment insights
+- Always specify which company/symbol you're analyzing
+- Include risk disclaimers`,
     messages,
     tools: {
       getMarketData: {
@@ -149,8 +188,18 @@ Example JSON structure:
           symbol: z.string().describe("Stock symbol for technical analysis"),
         }),
         execute: async ({ symbol }) => {
+          console.log(`Getting technical analysis for ${symbol}`);
           const technicalAnalysis = await financialDataService.getTechnicalAnalysis(symbol);
-          return JSON.stringify(technicalAnalysis, null, 2);
+          
+          // Ensure data consistency and realistic values
+          const validatedAnalysis = {
+            ...technicalAnalysis,
+            symbol: symbol.toUpperCase(),
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log(`Technical analysis for ${symbol}:`, validatedAnalysis);
+          return JSON.stringify(validatedAnalysis, null, 2);
         },
       },
       getNewsAnalysis: {
