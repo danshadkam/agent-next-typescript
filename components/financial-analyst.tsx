@@ -31,32 +31,44 @@ import {
   Gauge,
   Shield
 } from "lucide-react";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
 
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+// Dynamic imports for Chart.js to avoid SSR issues
+let Chart: any = null;
+let Line: any = null;
+let Bar: any = null;
+let Doughnut: any = null;
+
+// Client-side only chart initialization
+const initializeCharts = async () => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const ChartJS = await import('chart.js');
+    const ReactChartJS = await import('react-chartjs-2');
+    
+    // Register Chart.js components
+    ChartJS.Chart.register(
+      ChartJS.CategoryScale,
+      ChartJS.LinearScale,
+      ChartJS.PointElement,
+      ChartJS.LineElement,
+      ChartJS.BarElement,
+      ChartJS.Title,
+      ChartJS.Tooltip,
+      ChartJS.Legend,
+      ChartJS.Filler
+    );
+    
+    Chart = ChartJS.Chart;
+    Line = ReactChartJS.Line;
+    Bar = ReactChartJS.Bar;
+    Doughnut = ReactChartJS.Doughnut;
+    
+    console.log('✅ Chart.js initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize Chart.js:', error);
+  }
+};
 
 interface MarketData {
   symbol: string;
@@ -84,6 +96,46 @@ interface TechnicalData {
   volume: number;
   recommendation: 'BUY' | 'HOLD' | 'SELL';
 }
+
+// Safe Chart Wrapper with Error Boundary
+const SafeChart = ({ type, data, options, className = "" }: any) => {
+  const [isClient, setIsClient] = useState(false);
+  const [chartError, setChartError] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    initializeCharts();
+  }, []);
+
+  if (!isClient) {
+    return (
+      <div className={`flex items-center justify-center bg-slate-800/50 rounded ${className}`} style={{ height: '160px' }}>
+        <div className="text-slate-400 text-sm">Loading chart...</div>
+      </div>
+    );
+  }
+
+  if (chartError || !Line || !Bar || !Doughnut) {
+    return (
+      <div className={`flex items-center justify-center bg-slate-800/50 rounded ${className}`} style={{ height: '160px' }}>
+        <div className="text-slate-400 text-sm">Chart unavailable</div>
+      </div>
+    );
+  }
+
+  try {
+    const ChartComponent = type === 'line' ? Line : type === 'bar' ? Bar : Doughnut;
+    return <ChartComponent data={data} options={options} />;
+  } catch (error) {
+    console.error('Chart rendering error:', error);
+    setChartError(true);
+    return (
+      <div className={`flex items-center justify-center bg-slate-800/50 rounded ${className}`} style={{ height: '160px' }}>
+        <div className="text-slate-400 text-sm">Chart error</div>
+      </div>
+    );
+  }
+};
 
 // Enhanced Message Component for structured responses
 const StructuredMessage = ({ content }: { content: string }) => {
@@ -130,7 +182,8 @@ const StructuredMessage = ({ content }: { content: string }) => {
                   RSI - Relative Strength Index
                 </h5>
                 <div className="h-40 mb-4">
-                  <Line
+                  <SafeChart
+                    type="line"
                     data={{
                       labels: ['1W ago', '5D ago', '3D ago', '1D ago', 'Current'],
                       datasets: [{
@@ -195,25 +248,26 @@ const StructuredMessage = ({ content }: { content: string }) => {
                   MACD - Moving Average Convergence Divergence
                 </h5>
                 <div className="h-40 mb-4">
-                  <Line
+                  <SafeChart
+                    type="line"
                     data={{
                       labels: ['1W ago', '5D ago', '3D ago', '1D ago', 'Current'],
                       datasets: [
                         {
-                          label: 'MACD Line',
-                          data: [0.8, -0.3, 0.6, 0.2, indicators.macd.value || 0],
+                          label: 'MACD',
+                          data: [-0.5, 0.2, 0.8, 0.6, indicators.macd.value],
                           borderColor: '#00D4AA',
-                          backgroundColor: 'transparent',
+                          backgroundColor: 'rgba(0, 212, 170, 0.1)',
+                          fill: false,
                           tension: 0.4,
-                          pointRadius: 4,
                         },
                         {
-                          label: 'Signal Line',
-                          data: [0.5, -0.1, 0.4, 0.1, indicators.macd.signal || 0],
+                          label: 'Signal',
+                          data: [-0.3, 0.1, 0.5, 0.4, indicators.macd.signal],
                           borderColor: '#f59e0b',
-                          backgroundColor: 'transparent',
+                          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                          fill: false,
                           tension: 0.4,
-                          pointRadius: 4,
                         }
                       ]
                     }}
@@ -223,7 +277,6 @@ const StructuredMessage = ({ content }: { content: string }) => {
                       plugins: { 
                         legend: { 
                           display: true,
-                          position: 'top',
                           labels: { color: '#94A3B8', font: { size: 10 } }
                         },
                         tooltip: {
@@ -248,13 +301,19 @@ const StructuredMessage = ({ content }: { content: string }) => {
                     }}
                   />
                 </div>
-                <div className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3">
-                  <span className="text-slate-400 text-sm">Signal:</span>
-                  <span className={`font-bold text-lg ${(indicators.macd.value || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {(indicators.macd.value || 0).toFixed(3)}
-                  </span>
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${(indicators.macd.value || 0) > 0 ? 'bg-green-900 text-green-200' : 'bg-red-900 text-red-200'}`}>
-                    {(indicators.macd.value || 0) > 0 ? 'Bullish' : 'Bearish'}
+                <div className="grid grid-cols-2 gap-4 bg-slate-800/50 rounded-lg p-3">
+                  <div className="text-center">
+                    <div className="text-slate-400 text-xs">MACD</div>
+                    <div className="text-[#00D4AA] font-bold">{indicators.macd.value.toFixed(3)}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-slate-400 text-xs">Signal</div>
+                    <div className="text-yellow-400 font-bold">{indicators.macd.signal.toFixed(3)}</div>
+                  </div>
+                </div>
+                <div className="mt-2 text-center">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${indicators.macd.value > indicators.macd.signal ? 'bg-green-900 text-green-200' : 'bg-red-900 text-red-200'}`}>
+                    {indicators.macd.value > indicators.macd.signal ? 'Bullish Signal' : 'Bearish Signal'}
                   </span>
                 </div>
               </div>
@@ -703,7 +762,8 @@ export default function FinancialAnalyst() {
           Portfolio Mix
         </h3>
         <div className="h-32">
-          <Doughnut 
+          <SafeChart
+            type="doughnut"
             data={portfolioData}
             options={{
               responsive: true,
@@ -970,7 +1030,11 @@ export default function FinancialAnalyst() {
             </div>
             
             <div className="h-80">
-              <Line data={chartData} options={chartOptions} />
+              <SafeChart
+                type="line"
+                data={chartData}
+                options={chartOptions}
+              />
             </div>
           </div>
 
