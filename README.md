@@ -1,4 +1,4 @@
-# Financial Analyst AI - Professional Trading Dashboard
+# Financial Analyst AI - Professional Trading Intelligence
 
 A comprehensive **AI-powered financial analysis platform** built with Next.js, TypeScript, and OpenAI's GPT-4. Features real-time market data, advanced charting, news sentiment analysis, and professional-grade financial intelligence.
 
